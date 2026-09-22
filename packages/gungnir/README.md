@@ -1,6 +1,6 @@
 # gungnir (monorepo package)
 
-**Honest status (Sprint 0 Phase A, days 6–10):** bridge + thin hunt runner + optional thin correlate.
+**Honest status (Sprint 0 Phase A complete):** bridge + thin hunt runner + optional thin correlate.
 
 ## What this package IS
 
@@ -22,10 +22,8 @@
 - **Not** the enhanced 26-chain correlation library from legacy `enhanced_correlate.py`
 - **Not** feature parity with live/public Gungnir packages for reports or pack orchestration
 
-For historical enhanced correlate / verify code, see the separate legacy harden /
-public Gungnir repositories — they are **not** vendored wholesale into this suite.
+Historical CLI / prior releases remain in the public `gungnir` repo (thin README mirror → this monorepo). Prefer this package for new suite work.
 
-Prefer small honest code over a lying README. When chains land, they will be
-auditable and tested — not claimed early.
+Prefer small honest code over a lying README. When chains land, they will be auditable and tested — not claimed early.
 
 Do not claim live Gungnir capabilities from this package.

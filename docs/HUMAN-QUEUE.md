@@ -1,48 +1,42 @@
 # HUMAN-QUEUE — Sprint 0 Phase A
 
-Items that need a human (OAuth scope, Founder decision, or later day work). Not blockers for local use of this scaffold.
+Items that need a human (OAuth scope, Founder decision, or later work). Not blockers for local use of this scaffold.
 
 ## Blocked / needs human OAuth
 
-1. **GitHub Actions workflow push — BLOCKED on first ship**
+1. **GitHub Actions workflow push — BLOCKED**
    - `gh` scopes: `gist, read:org, repo` — **no `workflow` scope**.
    - Push of `.github/workflows/ci.yml` was rejected by GitHub (`refusing to allow an OAuth App to create or update workflow ... without workflow scope`).
-   - **Action taken:** workflow removed from the pushed commit so the rest of Sprint 0 could ship. Canonical copy kept at `docs/ci-pending/ci.yml`.
-   - **Human:** re-auth `gh auth login` (or refresh token) with `workflow` scope, then:
+   - **Action taken:** workflow removed from the pushed tree; canonical copy at `docs/ci-pending/ci.yml`.
+   - **Human:** re-auth `gh auth login` with `workflow` scope, then:
      ```bash
      mkdir -p .github/workflows
      cp docs/ci-pending/ci.yml .github/workflows/ci.yml
      git add .github/workflows/ci.yml && git commit -m "ci: add pytest workflow" && git push
      ```
-   - Until then, run tests locally:
-     ```bash
-     cd sentinel-suite
-     python3 -m venv .venv && source .venv/bin/activate
-     pip install -U pip pytest
-     pip install -e packages/sentinel_core -e packages/shadowseye \
-                 -e packages/gungnir -e packages/sentinel_cli
-     pytest -q
-     sentinel doctor
-     ```
+   - Until then, run tests locally (see root README).
 
-## Deferred (not day-1)
+## Open Founder decisions
 
-2. **Thin README mirrors** on existing public `gungnir` + `ShadowsEye` repos — point at this monorepo. Explicitly **not** part of this ship.
-3. **License re-eval** — Founder Apache-2.0 preference vs MIT consistency (see `docs/LICENSE_NOTE.md`).
-4. **PyPI publish** — not in Sprint 0; install via editable clone until then.
-5. **Guard SDK** — never touch; separate product.
-6. **Engine binary allowlist hashes** — download path is implemented (allowlist-only, sha256, `SENTINEL_HOME/bin` only, no PATH mutation). `ENGINE_ALLOWLIST` is **empty** until a human pins real third-party release hashes. Deferred catalog: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`.
+2. **License re-eval** — Founder Apache-2.0 preference vs MIT consistency (see `docs/LICENSE_NOTE.md`).
+3. **Engine binary allowlist hashes** — download path implemented; `ENGINE_ALLOWLIST` empty until a human pins third-party release hashes. Deferred catalog: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`.
+4. **Phase B GO** — first slice of ShadowsEye that pays (L0–L5 + watch diffs + interestingness)?
+5. **Money pack later** — which pack after Eye pays (BOLA/IDOR vs ATO/OAuth)?
 
-## Days 6–10 landed (this ship)
+## Deferred (not Sprint 0)
 
-- Engines: allowlist download path + doctor status (detected / pinned / allowlisted / deferred); `docs/ENGINES.md`.
-- Eye: thin `shadowseye.runner` + `sentinel eye run` (stdlib inventory → graph; `--scope` or `--i-own-this`).
-- Hunt: thin `gungnir.runner` + `sentinel hunt run` + thin `correlate_findings` (dedupe; no 26-chain theater).
-- Honesty: `packages/gungnir/README.md` states bridge + thin runner + thin correlate only.
+6. **PyPI publish** — install via editable clone until then.
+7. **Guard SDK** — never touch; separate product.
+8. **Tauri / L1–L6 full / Hunt Packs UI / coach / X promo** — later phases.
 
-## Days 11–14 plan (not this ship)
+## Days 11–14 landed (this ship)
 
-- Residual gungnir honesty / branding pass if needed
-- Founder review packet
-- Mirror README on live Eye/Hunt repos (human; do not modify those repos from agents without explicit GO)
-- CI workflow push once `workflow` OAuth scope is available
+- Branding / residual honesty on suite README + package READMEs
+- Founder review packet (box deliverables + optional `docs/SPRINT0_REVIEW.md`)
+- Thin README mirrors on live `gungnir` + `ShadowsEye` (pointer to monorepo; no code moves/deletes)
+- Still **no** `.github/workflows` push
+
+## Days 6–10 (prior)
+
+- Engines allowlist download path + doctor status; `docs/ENGINES.md`
+- Eye / Hunt thin runners + honesty docs

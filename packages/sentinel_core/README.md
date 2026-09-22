@@ -14,7 +14,7 @@ This is a **new clean library** — not a port of the legacy Flask `sentinel_cor
 ## Engines
 
 - `detect_engine(name)` — PATH + `SENTINEL_HOME/bin`
-- `ensure_engine(name, download=...)` — download **deferred** in Sprint 0
-- `pin_engine` / `stamp_run` / `list_pinned`
+- `ensure_engine(name, download=...)` — **allowlist-only** fetch + sha256 verify into `SENTINEL_HOME/bin/` (never mutates PATH). `ENGINE_ALLOWLIST` is empty until a human pins release hashes; non-allowlisted names are rejected (deferred catalog in [`docs/ENGINES.md`](../../docs/ENGINES.md))
+- `pin_engine` / `stamp_run` / `list_pinned` / `list_engine_status`
 
 See repo root README for CLI (`sentinel program import-brief`, `sentinel doctor`).
