@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shadowseye"
+version = "0.1.0"
+description = "ShadowsEye thin bridge stub — emits sentinel_core events (Sprint 0)"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["sentinel_core>=0.1.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

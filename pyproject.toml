@@ -1,0 +1,21 @@
+[project]
+name = "sentinel-suite-workspace"
+version = "0.1.0"
+description = "Sentinel Suite monorepo workspace (editable installs of packages/*)"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+readme = "README.md"
+
+# Root is not a published wheel. Install packages individually:
+#   pip install -e packages/sentinel_core -e packages/shadowseye \
+#               -e packages/gungnir -e packages/sentinel_cli
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+  "packages/sentinel_core/src",
+  "packages/shadowseye/src",
+  "packages/gungnir/src",
+  "packages/sentinel_cli/src",
+]
+addopts = "-q"

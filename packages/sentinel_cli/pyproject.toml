@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentinel-cli"
+version = "0.1.0"
+description = "Sentinel Suite CLI (doctor, program init stubs)"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["sentinel_core>=0.1.0"]
+
+[project.scripts]
+sentinel = "sentinel_cli.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
