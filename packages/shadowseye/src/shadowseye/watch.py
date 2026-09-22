@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,8 +18,23 @@ def runs_dir(program_root: Path) -> Path:
     return d
 
 
+def _tech_keys(inventory: dict[str, Any]) -> list[str]:
+    """Normalize inventory tech[] to sorted unique tech name keys."""
+    keys: set[str] = set()
+    for raw in inventory.get("tech") or []:
+        if isinstance(raw, str):
+            name = raw.strip().lower()
+        elif isinstance(raw, dict):
+            name = str(raw.get("name") or "").strip().lower()
+        else:
+            continue
+        if name:
+            keys.add(name)
+    return sorted(keys)
+
+
 def snapshot_from_inventory(inventory: dict[str, Any], *, ts: str | None = None) -> dict[str, Any]:
-    """Build a comparable snapshot dict from inventory."""
+    """Build a comparable snapshot dict from inventory (includes tech keys)."""
     dns: list[str] = []
     for raw in inventory.get("dns_names") or []:
         if isinstance(raw, str):
@@ -52,6 +66,7 @@ def snapshot_from_inventory(inventory: dict[str, Any], *, ts: str | None = None)
         "dns_names": sorted(set(dns)),
         "ports": sorted(ports, key=lambda p: (p["host"], p["port"])),
         "http": sorted(set(http_urls)),
+        "tech": _tech_keys(inventory),
         "domains": sorted(
             {
                 (d if isinstance(d, str) else str(d.get("domain") or "")).strip().lower().rstrip(".")
@@ -106,7 +121,7 @@ def diff_snapshots(
     """
     Compare snapshots. First run (previous is None) → honest empty diffs.
 
-    Emits added/removed for dns_names, ports, http.
+    Emits added/removed for dns_names, ports, http, tech.
     """
     empty = {
         "first_run": previous is None,
@@ -115,6 +130,7 @@ def diff_snapshots(
         "dns_names": {"added": [], "removed": []},
         "ports": {"added": [], "removed": []},
         "http": {"added": [], "removed": []},
+        "tech": {"added": [], "removed": []},
     }
     if previous is None:
         return empty
@@ -151,6 +167,27 @@ def diff_snapshots(
         "added": sorted(cur_http - prev_http),
         "removed": sorted(prev_http - cur_http),
     }
+
+    # Tech keys: snapshot stores plain name strings; tolerate legacy dicts.
+    def _tech_set(snap: dict[str, Any]) -> set[str]:
+        out: set[str] = set()
+        for raw in snap.get("tech") or []:
+            if isinstance(raw, str):
+                name = raw.strip().lower()
+            elif isinstance(raw, dict):
+                name = str(raw.get("name") or "").strip().lower()
+            else:
+                continue
+            if name:
+                out.add(name)
+        return out
+
+    prev_tech = _tech_set(previous)
+    cur_tech = _tech_set(current)
+    empty["tech"] = {
+        "added": sorted(cur_tech - prev_tech),
+        "removed": sorted(prev_tech - cur_tech),
+    }
     return empty
 
 
@@ -162,7 +199,7 @@ def watch_compare_and_persist(
     Load previous latest snapshot, diff against current inventory, then persist.
 
     Mental model: snapshot timestamps support “last 24h / 7d” comparisons later;
-    this MVP stores ts on every snapshot.
+    this MVP stores ts on every snapshot. Tech added/removed appear in diffs.
     """
     previous = load_latest_snapshot(program_root)
     current = snapshot_from_inventory(inventory)

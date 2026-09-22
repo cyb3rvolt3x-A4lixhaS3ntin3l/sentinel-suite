@@ -25,6 +25,16 @@ RARE_ADMIN_TECH: frozenset[str] = frozenset(
         "express",
         "next.js",
         "react",
+        "tomcat",
+        "jira",
+        "confluence",
+        "grafana",
+        "kibana",
+        "magento",
+        "drupal",
+        "joomla",
+        "shopify",
+        "git-exposure",
     }
 )
 
@@ -117,6 +127,8 @@ def fingerprint(
     hdrs = _norm_headers(headers)
     text = _body_text(body)
     text_l = text.lower()
+    # Cap body scans for cost; path/url always full.
+    body_scan = text_l[:12000]
     url_l = (url or "").strip().lower()
     cookie_l = _cookie_blob(hdrs, cookies)
     hits: dict[str, dict[str, Any]] = {}
@@ -126,7 +138,7 @@ def fingerprint(
     server_l = server.lower()
     if "nginx" in server_l:
         _add(hits, "nginx", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
-    if "apache" in server_l:
+    if "apache" in server_l and "coyote" not in server_l and "tomcat" not in server_l:
         _add(hits, "apache", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
     if "cloudflare" in server_l or "cf-ray" in hdrs or "cf-cache-status" in hdrs:
         evid = server if "cloudflare" in server_l else "cf-ray/cf-cache-status"
@@ -137,6 +149,21 @@ def fingerprint(
         _add(hits, "gunicorn", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
     if "openresty" in server_l:
         _add(hits, "openresty", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
+    if "tomcat" in server_l or "apache-coyote" in server_l or "coyote" in server_l:
+        _add(hits, "tomcat", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
+    if "werkzeug" in server_l:
+        _add(hits, "flask", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
+    if "uvicorn" in server_l:
+        _add(hits, "uvicorn", confidence=CONF_MED, evidence=f"Server: {server}", source="header")
+        # Often FastAPI/Starlette behind uvicorn — low unless body hints
+        if "fastapi" in body_scan or "swagger" in body_scan or "/docs" in url_l:
+            _add(hits, "fastapi", confidence=CONF_LOW, evidence="uvicorn + fastapi/docs hint", source="header")
+    if "vercel" in server_l or "x-vercel-id" in hdrs or "x-vercel-cache" in hdrs:
+        evid = server if "vercel" in server_l else "x-vercel-id/cache"
+        _add(hits, "vercel", confidence=CONF_MED, evidence=str(evid), source="header")
+    if "netlify" in server_l or "x-nf-request-id" in hdrs:
+        evid = server if "netlify" in server_l else "x-nf-request-id"
+        _add(hits, "netlify", confidence=CONF_MED, evidence=str(evid), source="header")
 
     # --- X-Powered-By ---
     xpb = hdrs.get("x-powered-by", "")
@@ -161,10 +188,10 @@ def fingerprint(
         )
 
     # Django
-    if "csrftoken" in cookie_l or "django" in text_l[:8000]:
+    if "csrftoken" in cookie_l or "django" in body_scan[:8000]:
         if "csrftoken" in cookie_l:
             _add(hits, "django", confidence=CONF_MED, evidence="cookie:csrftoken", source="cookie")
-        elif "csrfmiddlewaretoken" in text_l:
+        elif "csrfmiddlewaretoken" in body_scan:
             _add(
                 hits,
                 "django",
@@ -180,33 +207,35 @@ def fingerprint(
         _add(hits, "rails", confidence=CONF_MED, evidence="rails session cookie", source="cookie")
     if "x-runtime" in hdrs and "rails" not in hits and "php" not in hits:
         # weak — many stacks set X-Runtime; only note as low if path/body hint
-        if "rails" in text_l[:4000] or "/rails/" in url_l:
+        if "rails" in body_scan[:4000] or "/rails/" in url_l:
             _add(hits, "rails", confidence=CONF_LOW, evidence="X-Runtime + rails hint", source="header")
 
     # Laravel
-    if "laravel_session" in cookie_l or "xsrf-token" in cookie_l and "laravel" in text_l[:4000]:
+    if "laravel_session" in cookie_l or ("xsrf-token" in cookie_l and "laravel" in body_scan[:4000]):
         _add(hits, "laravel", confidence=CONF_MED, evidence="laravel_session cookie", source="cookie")
     elif "laravel_session" in cookie_l:
         _add(hits, "laravel", confidence=CONF_MED, evidence="laravel_session", source="cookie")
 
-    # WordPress cookies / paths / generator
+    # WordPress cookies / paths / generator / REST
     if re.search(r"wordpress_[a-z0-9_]*", cookie_l) or "wp-settings" in cookie_l:
         _add(hits, "wordpress", confidence=CONF_MED, evidence="wordpress_* cookie", source="cookie")
-    if "/wp-content/" in text_l or "/wp-includes/" in text_l or "/wp-admin" in url_l:
-        _add(
-            hits,
-            "wordpress",
-            confidence=CONF_MED,
-            evidence="wp-content/wp-includes/wp-admin path",
-            source="path" if "/wp-admin" in url_l else "body",
-        )
+    if (
+        "/wp-content/" in body_scan
+        or "/wp-includes/" in body_scan
+        or "/wp-admin" in url_l
+        or "/wp-json" in url_l
+        or "/wp-json/" in body_scan
+    ):
+        evid = "wp-json" if ("/wp-json" in url_l or "/wp-json/" in body_scan) else "wp-content/wp-includes/wp-admin path"
+        src = "path" if ("/wp-admin" in url_l or "/wp-json" in url_l) else "body"
+        _add(hits, "wordpress", confidence=CONF_MED, evidence=evid, source=src)
     if re.search(
         r'<meta[^>]+name=["\']generator["\'][^>]+content=["\'][^"\']*wordpress',
-        text_l,
+        body_scan,
         re.I,
     ) or re.search(
         r'<meta[^>]+content=["\'][^"\']*wordpress[^"\']*["\'][^>]+name=["\']generator["\']',
-        text_l,
+        body_scan,
         re.I,
     ):
         _add(hits, "wordpress", confidence=CONF_MED_HIGH, evidence="meta generator WordPress", source="meta")
@@ -215,7 +244,7 @@ def fingerprint(
     if "phpsessid" in cookie_l:
         _add(hits, "php", confidence=CONF_LOW, evidence="PHPSESSID cookie", source="cookie")
 
-    # Java / Spring / Jenkins
+    # Java / Spring / Jenkins / Tomcat
     if "jsessionid" in cookie_l:
         _add(hits, "java", confidence=CONF_LOW, evidence="JSESSIONID cookie", source="cookie")
     if "/actuator" in url_l or "x-application-context" in hdrs:
@@ -223,24 +252,122 @@ def fingerprint(
     if "jenkins" in server_l or "x-jenkins" in hdrs or "/jenkins" in url_l:
         evid = hdrs.get("x-jenkins") or server or url
         _add(hits, "jenkins", confidence=CONF_MED_HIGH, evidence=str(evid)[:120], source="header")
-    if "jenkins" in text_l[:6000] and ("hudson" in text_l[:6000] or "jenkins-agent" in text_l):
+    if "jenkins" in body_scan[:6000] and ("hudson" in body_scan[:6000] or "jenkins-agent" in body_scan):
         _add(hits, "jenkins", confidence=CONF_MED, evidence="jenkins body signature", source="body")
+    if "/manager/html" in url_l or "apache tomcat" in body_scan[:4000]:
+        _add(hits, "tomcat", confidence=CONF_MED if "/manager" in url_l else CONF_LOW,
+             evidence="tomcat path/body", source="path" if "/manager" in url_l else "body")
+
+    # Atlassian Jira / Confluence
+    if (
+        "atlassian.xsrf.token" in cookie_l
+        or "jira.editor.user.preferences" in cookie_l
+        or "/secure/dashboard.jspa" in url_l
+        or "/rest/api/2/" in url_l
+        or "ajs-" in cookie_l and "jira" in body_scan[:4000]
+    ):
+        _add(hits, "jira", confidence=CONF_MED, evidence="jira cookie/path clue", source="cookie")
+    if "jira" in url_l and ("atlassian" in body_scan[:4000] or "jira" in body_scan[:2000]):
+        _add(hits, "jira", confidence=CONF_MED, evidence="jira url + body", source="path")
+    if (
+        "confluence.browse.space" in cookie_l
+        or "/wiki/" in url_l
+        or "com.atlassian.confluence" in body_scan
+        or ("confluence" in body_scan[:4000] and "atlassian" in body_scan[:4000])
+    ):
+        _add(hits, "confluence", confidence=CONF_MED, evidence="confluence cookie/body/path", source="body")
+
+    # Grafana / Kibana
+    if (
+        "grafana_session" in cookie_l
+        or "grafana_sess" in cookie_l
+        or "x-grafana-org-id" in hdrs
+        or "/grafana" in url_l
+        or "grafana" in body_scan[:3000] and ("dashboard" in body_scan[:3000] or "prometheus" in body_scan[:3000])
+    ):
+        _add(hits, "grafana", confidence=CONF_MED, evidence="grafana cookie/header/path", source="cookie")
+    if (
+        "kbn-name" in hdrs
+        or "kbn-version" in hdrs
+        or "kibana" in cookie_l
+        or "/app/kibana" in url_l
+        or "/app/discover" in url_l and "elastic" in body_scan[:3000]
+    ):
+        evid = hdrs.get("kbn-name") or hdrs.get("kbn-version") or "kibana path/cookie"
+        _add(hits, "kibana", confidence=CONF_MED, evidence=str(evid)[:120], source="header")
+
+    # Shopify / Magento
+    if (
+        "x-shopid" in hdrs
+        or "x-shopify-stage" in hdrs
+        or "_shopify_y" in cookie_l
+        or "_shopify_s" in cookie_l
+        or "cdn.shopify.com" in body_scan
+        or "myshopify.com" in body_scan
+    ):
+        _add(hits, "shopify", confidence=CONF_MED, evidence="shopify header/cookie/cdn", source="header")
+    if (
+        "x-magento" in "".join(hdrs.keys())
+        or any(k.startswith("x-magento") for k in hdrs)
+        or "mage-cache-storage" in cookie_l
+        or "frontend=" in cookie_l and ("magento" in body_scan[:4000] or "/static/version" in body_scan)
+        or "magento" in body_scan[:4000] and "/static/version" in body_scan
+    ):
+        _add(hits, "magento", confidence=CONF_MED, evidence="magento header/cookie/path", source="header")
+
+    # Drupal / Joomla extras beyond generator
+    if (
+        "drupal" in cookie_l
+        or re.search(r"\bsess[a-f0-9]{6,}\b", cookie_l) and "drupal" in body_scan[:4000]
+        or "x-drupal-cache" in hdrs
+        or "x-generator" in hdrs and "drupal" in hdrs.get("x-generator", "").lower()
+        or "/sites/default/" in body_scan
+        or "drupal.settings" in body_scan
+    ):
+        _add(hits, "drupal", confidence=CONF_MED, evidence="drupal header/cookie/path", source="header")
+    if (
+        "joomla_user_state" in cookie_l
+        or "joomla" in cookie_l
+        or "/administrator/index.php" in url_l and "joomla" in body_scan[:4000]
+        or "option=com_" in body_scan
+    ):
+        _add(hits, "joomla", confidence=CONF_MED if "joomla" in cookie_l or "joomla" in body_scan[:2000] else CONF_LOW,
+             evidence="joomla cookie/body", source="cookie")
+
+    # Flask / FastAPI body clues (when Server not werkzeug/uvicorn)
+    if "flask" not in hits and ("werkzeug" in body_scan[:2000] or "flask." in body_scan[:2000]):
+        _add(hits, "flask", confidence=CONF_LOW, evidence="flask/werkzeug body hint", source="body")
+    if "fastapi" not in hits and ("fastapi" in body_scan[:3000] or '"openapi":' in body_scan[:2000] and "/openapi.json" in url_l):
+        _add(hits, "fastapi", confidence=CONF_LOW, evidence="fastapi/openapi hint", source="body")
+
+    # Gin (Go) — weak: X-Gin or common debug
+    if "gin" in server_l or "x-gin" in hdrs or ("gin-gonic" in body_scan[:3000]):
+        _add(hits, "gin", confidence=CONF_LOW, evidence="gin server/header/body", source="header")
 
     # GraphQL path
-    if "/graphql" in url_l or re.search(r'["\']/graphql["\']', text_l[:8000]):
+    if "/graphql" in url_l or re.search(r'["\']/graphql["\']', body_scan[:8000]):
         _add(hits, "graphql", confidence=CONF_MED if "/graphql" in url_l else CONF_LOW,
              evidence="/graphql path or reference", source="path")
 
     # jQuery / React / Next
-    if re.search(r"jquery[.-]?(\d|\.min\.js)|/jquery\.js", text_l):
+    if re.search(r"jquery[.-]?(\d|\.min\.js)|/jquery\.js", body_scan):
         _add(hits, "jquery", confidence=CONF_LOW, evidence="jquery script reference", source="body")
-    if re.search(r"\breact(?:-dom)?[\.\"'/]|data-reactroot|__NEXT_DATA__", text_l):
-        if "__next_data__" in text_l or "/_next/" in text_l or "next.js" in text_l[:4000]:
+    if re.search(r"\breact(?:-dom)?[\.\"'/]|data-reactroot|__NEXT_DATA__", body_scan):
+        if "__next_data__" in body_scan or "/_next/" in body_scan or "next.js" in body_scan[:4000]:
             _add(hits, "next.js", confidence=CONF_MED, evidence="__NEXT_DATA__ or /_next/", source="body")
-        if "data-reactroot" in text_l or "react" in text_l[:8000]:
+        if "data-reactroot" in body_scan or "react" in body_scan[:8000]:
             _add(hits, "react", confidence=CONF_LOW, evidence="react body signature", source="body")
 
-    # Express via common header combo already handled; also x-powered-by
+    # /.git exposure clue — fingerprint only if already present in fetched URL/body/headers.
+    # Does NOT probe or fetch /.git; low-confidence TECH candidate only.
+    if (
+        "/.git" in url_l
+        or "/.git/" in body_scan
+        or re.search(r"\bref:\s*refs/heads/", text[:2000])
+        or "[core]" in text[:500] and "repositoryformatversion" in body_scan[:800]
+    ):
+        evid = "url:/.git" if "/.git" in url_l else "body git metadata clue"
+        _add(hits, "git-exposure", confidence=CONF_LOW, evidence=evid, source="path" if "/.git" in url_l else "body")
 
     # Generic generator meta
     m = re.search(

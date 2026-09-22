@@ -1,4 +1,4 @@
-# HUMAN-QUEUE — Sprint 0 Phase A + Phase B slice2
+# HUMAN-QUEUE — Sprint 0 Phase A + Phase B slice4
 
 Items that need a human (OAuth scope, Founder decision, or later work). Not blockers for local use of this scaffold.
 
@@ -22,7 +22,7 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 3. **Engine binary allowlist hashes** — download path implemented; `ENGINE_ALLOWLIST` empty until Founder pins hashes. **Proposal (not applied):** `/workspace/deliverables/PHASE_B_ENGINE_HASH_PROPOSAL.md` (+ optional `docs/ENGINE_HASH_PROPOSAL.md`). Deferred: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`. Empty allowlist ⇒ Eye `--no-tools` default.
 4. ~~**Phase B GO**~~ — **slice1 shipped** (L0 program.yml brain, L2 native+crt.sh stub, L5 http probe lite, interestingness ranker, L6 watch diffs MVP).
 5. **Money pack later** — which pack after Eye pays (BOLA/IDOR vs ATO/OAuth)?
-6. ~~**Next Phase B slice**~~ — **slice3 shipped** (L5 tech fingerprint heuristics). Engine hashes **HOLD** (Founder via Arisha) — keep ENGINE_ALLOWLIST empty; do not wire `--tools` downloads.
+6. ~~**Next Phase B slice**~~ — **slice4 shipped** (deeper L5 fingerprints + L6 tech diffs). Engine hashes **HOLD** (Founder via Arisha) — keep ENGINE_ALLOWLIST empty; do not wire `--tools` downloads. Idle for Phase C vs more Eye.
 
 ## Deferred (not this ship)
 
@@ -37,7 +37,7 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 - L2: native wordlist resolve + injectable `crtsh_query` (honest degrade); tools deferred
 - L5: ports + stdlib HTTP probe via `http_guard`; `http[]` + heuristic `tech[]` + TECH events
 - Ranker: `interestingness` scores; default sort in `--json`
-- L6: `runs/latest.json` + history; `--watch` diffs (added/removed dns/ports/http)
+- L6: `runs/latest.json` + history; `--watch` diffs (added/removed dns/ports/http/tech)
 - CLI: `sentinel eye run … --json --watch --no-tools` (default no-tools true)
 
 ## Days 11–14 (prior)

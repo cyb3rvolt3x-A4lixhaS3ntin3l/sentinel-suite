@@ -372,7 +372,7 @@ def cmd_hunt_run(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase B slice3)",
+        description="Sentinel Suite CLI (Phase B slice4)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 

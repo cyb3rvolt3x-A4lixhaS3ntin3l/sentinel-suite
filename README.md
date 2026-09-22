@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase B slice3 shipped** — Eye L0/L1/L2/L5 + tech fingerprint heuristics + ranker/watch; Phase A core intact. Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase B slice4 shipped** — Eye L0/L1/L2/L5 deeper fingerprints + L6 tech diffs + ranker/watch; Phase A core intact. Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, Hunt Packs UI, coach, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -91,6 +91,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/SPRINT0_REVIEW.md`](docs/SPRINT0_REVIEW.md) | Short Founder review pointer |
 | [`docs/PHASE_B_SLICE2.md`](docs/PHASE_B_SLICE2.md) | Slice2 reality table |
 | [`docs/PHASE_B_SLICE3.md`](docs/PHASE_B_SLICE3.md) | Slice3 L5 tech fingerprint |
+| [`docs/PHASE_B_SLICE4.md`](docs/PHASE_B_SLICE4.md) | Slice4 deeper L5 + L6 tech diffs |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
 ## Layout

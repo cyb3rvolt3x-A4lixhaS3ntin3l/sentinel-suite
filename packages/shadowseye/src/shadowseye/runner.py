@@ -31,6 +31,7 @@ DEFAULT_PORTS: tuple[int, ...] = (80, 443)
 PHASE_B_SLICE1_LAYERS: tuple[str, ...] = ("L0", "L1", "L2", "L5", "L6", "ranker")
 PHASE_B_SLICE2_LAYERS = PHASE_B_SLICE1_LAYERS  # alias after slice2 landing
 PHASE_B_SLICE3_LAYERS: tuple[str, ...] = ("L0", "L1", "L2", "L5", "L6", "ranker")
+PHASE_B_SLICE4_LAYERS: tuple[str, ...] = ("L0", "L1", "L2", "L5", "L6", "ranker")
 
 
 
@@ -190,7 +191,7 @@ def touch_program_yml_layers(
 
     update_program_yml_fields(
         program_id,
-        layers_enabled=list(layers or PHASE_B_SLICE3_LAYERS),
+        layers_enabled=list(layers or PHASE_B_SLICE4_LAYERS),
         updated_at=datetime.now(timezone.utc).isoformat(),
     )
 
@@ -230,12 +231,12 @@ def run_eye(
     """
     Require scope file OR --i-own-this, gather inventory, emit into program graph.
 
-    Phase B slice3:
+    Phase B slice4:
     - L1: identity lite (RDAP/ASN/MX/SPF) low-confidence; ``--no-identity`` to skip
     - L2: native wordlist + hardened crt.sh + reverse-IP neighbours (scope-distance cap)
-    - L5: bounded ports + http probe + tech fingerprint heuristics (``--no-fingerprint``)
+    - L5: bounded ports + http probe + deeper tech fingerprint heuristics (``--no-fingerprint``)
     - ranker: interestingness sort + rare/admin tech boosts
-    - L6: ``watch=True`` persists runs/latest.json and returns diffs
+    - L6: ``watch=True`` persists runs/latest.json and returns diffs (incl. tech added/removed)
     - ``no_tools=True`` (default): skip external engines (allowlist empty; hashes HOLD)
     """
     # Resolve scope path: explicit flag, else program scope.txt if it has allows
@@ -357,7 +358,7 @@ def run_eye(
         "scoped": scope is not None,
         "i_own_this": bool(i_own_this),
         "no_tools": bool(no_tools),
-        "layers": list(PHASE_B_SLICE3_LAYERS),
+        "layers": list(PHASE_B_SLICE4_LAYERS),
     }
     if watch_result is not None:
         out["watch"] = watch_result

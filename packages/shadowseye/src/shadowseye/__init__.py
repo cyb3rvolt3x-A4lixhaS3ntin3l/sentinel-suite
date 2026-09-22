@@ -1,4 +1,4 @@
-"""ShadowsEye — L0/L1/L2/L5 + tech fingerprint + ranker + watch (Phase B slice3)."""
+"""ShadowsEye — L0/L1/L2/L5 + tech fingerprint + ranker + watch (Phase B slice4)."""
 
 from shadowseye.bridge import (
     emit_dns_name_event,
