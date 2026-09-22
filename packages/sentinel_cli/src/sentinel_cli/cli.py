@@ -472,7 +472,7 @@ def cmd_hunt_report(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase C slice2)",
+        description="Sentinel Suite CLI (Phase C slice3)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -640,7 +640,7 @@ def build_parser() -> argparse.ArgumentParser:
         "run",
         help="Run a hunt pack (fail-closed on missing roles / scope)",
     )
-    pack_run.add_argument("pack_id", help="Pack id (e.g. ato_oauth_oidc)")
+    pack_run.add_argument("pack_id", help="Pack id (e.g. bola_idor_bfla | ato_oauth_oidc)")
     pack_run.add_argument(
         "--program",
         dest="program_id",
@@ -681,7 +681,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack",
         dest="pack_id",
         default=None,
-        help="Filter findings by pack id (e.g. ato_oauth_oidc)",
+        help="Filter findings by pack id (e.g. bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
         "-o",

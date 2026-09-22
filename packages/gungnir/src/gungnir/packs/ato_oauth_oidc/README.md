@@ -18,7 +18,7 @@ Defensive hunt pack: OAuth/OIDC/ATO **candidates + evidence stubs**. Lab / autho
 
 - Full ATO chain automation
 - Live IdP abuse / token-theft malware / exploit PoCs
-- BOLA / IDOR (separate pack, deferred)
+- BOLA / IDOR (see pack `bola_idor_bfla`)
 - Guard SDK, workflows, nuclei-all, lockout-abuse loops
 - Invent Steps to Reproduce without evidence on the graph
 

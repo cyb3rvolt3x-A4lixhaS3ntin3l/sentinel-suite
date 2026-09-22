@@ -1,6 +1,6 @@
 # gungnir (monorepo package)
 
-**Honest status (Phase C slice2):** bridge + thin hunt runner + **Hunt Pack framework** + money pack **`ato_oauth_oidc` v0.2** (nonce/PKCE stubs, client hints, thin report md).
+**Honest status (Phase C slice3):** bridge + thin hunt runner + **Hunt Pack framework** + **`ato_oauth_oidc` v0.2** + **`bola_idor_bfla` v0** (dual-role IDOR/BFLA fixtures).
 
 ## What this package IS
 
@@ -33,9 +33,24 @@
 
 - Full ATO chain automation
 - Live IdP attack / token-theft malware
-- BOLA / IDOR (separate pack, deferred)
+- BOLA / IDOR (see pack `bola_idor_bfla`)
 - LLM-invented Steps to Reproduce / full report factory / coach UI
 - nuclei-all / data destruction / lockout-abuse loops
+
+### Pack `bola_idor_bfla` v0 — can
+
+- Require **Role A + Role B** (`needs_roles=2`); fail closed with coach-style message if either missing
+- Horizontal IDOR candidates (A reads B object) from dual-role fixtures
+- Vertical / BFLA candidates (A hits admin-ish path) from fixtures
+- Sibling method confusion (GET vs DELETE/PUT/PATCH) from fixtures
+- Checklist + honest verification; evidence stubs from fixtures only
+- Report: `sentinel hunt report <program> --pack bola_idor_bfla`
+
+### Pack `bola_idor_bfla` v0 — cannot
+
+- Live multi-tenant abuse / other-customer probing / data destruction
+- Full business-logic assistant, race packs, live collaborator SSRF
+- nuclei-all / Guard SDK / workflows
 
 ## Role session fixture format
 
@@ -52,7 +67,7 @@ Place at `~/.sentinel/programs/<id>/roles/a.json` (and `b.json` when required).
 ## What this package is NOT (yet)
 
 - **Not** coach UI, Tauri, `--tools` engine downloads, Guard SDK
-- **Not** BOLA pack, desync, workflows, full report factory
+- **Not** desync, workflows, full report factory, race packs, live multi-tenant abuse
 - **Not** feature parity with any live/public Gungnir product claims beyond this monorepo
 
 Prefer small honest code over a lying README.

@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice2 shipped** — `ato_oauth_oidc` v0.2 (nonce/PKCE stubs, client hints, thin report md); Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, BOLA pack, full report factory, coach UI, Tauri, PyPI publish |
+| **Status** | **Phase C slice3 shipped** — `bola_idor_bfla` v0 (dual-role IDOR/BFLA fixtures) + `ato_oauth_oidc` v0.2 intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, race packs, full report factory, coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -33,10 +33,13 @@ sentinel hunt pack list
 sentinel hunt pack run ato_oauth_oidc --program demo --i-own-this \
   --url 'https://lab.example/oauth/authorize?client_id=1&response_type=code&redirect_uri=https://lab.example/cb'
 sentinel hunt report demo --pack ato_oauth_oidc -o ./report.md
+sentinel hunt pack run bola_idor_bfla --program demo --i-own-this \
+  --role-a ./roles/a.json --role-b ./roles/b.json
+sentinel hunt report demo --pack bola_idor_bfla -o ./bola-report.md
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
-Hunt packs also need Role A session fixture at `roles/a.json` (`cookies|headers|bearer`).
+Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`); `bola_idor_bfla` also requires Role B at `roles/b.json`.
 
 Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N` · `--no-fingerprint` · `--no-http`.
 ```bash
