@@ -115,6 +115,10 @@ def run_pack(
     opener: Callable[..., Any] | None = None,
     create_if_missing: bool = True,
     fixtures: dict[str, Any] | None = None,
+    max_workers: int | None = None,
+    max_requests: int | None = None,
+    max_duration: float | None = None,
+    i_understand_lab: bool = False,
 ) -> dict[str, Any]:
     """
     Run a hunt pack: require_scope_or_lab, fail-closed on roles, emit candidates.
@@ -131,7 +135,7 @@ def run_pack(
         raise PackRunError(str(exc), exit_code=2) from exc
 
     manifest = pack["manifest"]
-    _, scope = _resolve_scope(program_id, scope_path, i_own_this)
+    effective_scope_path, scope = _resolve_scope(program_id, scope_path, i_own_this)
     roles = _load_roles(
         program_id,
         manifest.needs_roles,
@@ -148,6 +152,7 @@ def run_pack(
     ctx: dict[str, Any] = {
         "program_id": program_id,
         "scope": scope,
+        "scope_path": str(effective_scope_path) if effective_scope_path else None,
         "i_own_this": bool(i_own_this),
         "roles": roles,
         "urls": list(urls or []),
@@ -156,6 +161,10 @@ def run_pack(
         "opener": opener,
         "fixtures": fixtures or {},
         "manifest": manifest,
+        "max_workers": max_workers,
+        "max_requests": max_requests,
+        "max_duration": max_duration,
+        "i_understand_lab": bool(i_understand_lab),
     }
 
     result = pack["run"](ctx)
@@ -358,4 +367,7 @@ def run_pack(
         "i_own_this": bool(i_own_this),
         "roles_loaded": sorted(roles.keys()),
         "pack_notes": result.get("notes") or [],
+        "caps": result.get("caps"),
+        "observations": result.get("observations") or [],
+        "fixtures_only": result.get("fixtures_only"),
     }

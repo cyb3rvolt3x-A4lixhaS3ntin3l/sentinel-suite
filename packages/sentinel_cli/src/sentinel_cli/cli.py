@@ -415,6 +415,10 @@ def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
             urls=list(args.urls or []),
             role_a_path=args.role_a_path,
             role_b_path=args.role_b_path,
+            max_workers=getattr(args, "max_workers", None),
+            max_requests=getattr(args, "max_requests", None),
+            max_duration=getattr(args, "max_duration", None),
+            i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
         )
     except PackRunError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -440,6 +444,8 @@ def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
                 "steps": result.get("steps") or [],
                 "hints": result.get("hints") or [],
                 "pack_notes": result.get("pack_notes") or [],
+                "caps": result.get("caps"),
+                "observations": result.get("observations") or [],
             },
             indent=2,
         )
@@ -498,7 +504,7 @@ def cmd_hunt_confirm_finding(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase C slice4)",
+        description="Sentinel Suite CLI (Phase C slice5)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -666,20 +672,39 @@ def build_parser() -> argparse.ArgumentParser:
         "run",
         help="Run a hunt pack (fail-closed on missing roles / scope)",
     )
-    pack_run.add_argument("pack_id", help="Pack id (e.g. business_logic | bola_idor_bfla | ato_oauth_oidc)")
+    pack_run.add_argument(
+        "pack_id",
+        help=(
+            "Pack id (e.g. race_toctou | business_logic | "
+            "bola_idor_bfla | ato_oauth_oidc)"
+        ),
+    )
     pack_run.add_argument(
         "--program",
         dest="program_id",
         required=True,
         help="Program id under SENTINEL_HOME",
     )
-    _add_scope_gate_flags(pack_run)
+    # Independent (not mutually exclusive): race_toctou open-internet needs BOTH
+    # --scope and --i-own-this plus --i-understand-lab.
+    pack_run.add_argument(
+        "--scope",
+        dest="scope_path",
+        default=None,
+        help="Path to scope.txt (allow/deny). Required unless --i-own-this.",
+    )
+    pack_run.add_argument(
+        "--i-own-this",
+        dest="i_own_this",
+        action="store_true",
+        help="Lab override: acknowledge you own/authorized the targets.",
+    )
     pack_run.add_argument(
         "--url",
         dest="urls",
         action="append",
         default=[],
-        help="Auth/OAuth surface URL (repeatable); else Eye inventory",
+        help="Auth/OAuth/race surface URL (repeatable); else Eye inventory",
     )
     pack_run.add_argument(
         "--role-a",
@@ -692,6 +717,37 @@ def build_parser() -> argparse.ArgumentParser:
         dest="role_b_path",
         default=None,
         help="Path to Role B session JSON (default: program/roles/b.json)",
+    )
+    pack_run.add_argument(
+        "--max-workers",
+        dest="max_workers",
+        type=int,
+        default=None,
+        help="race_toctou: concurrent workers (hard max 4; over-limit hard-fails)",
+    )
+    pack_run.add_argument(
+        "--max-requests",
+        dest="max_requests",
+        type=int,
+        default=None,
+        help="race_toctou: total requests per run (hard max 20; over-limit hard-fails)",
+    )
+    pack_run.add_argument(
+        "--max-duration",
+        dest="max_duration",
+        type=float,
+        default=None,
+        help="race_toctou: max duration seconds (hard max 5; over-limit hard-fails)",
+    )
+    pack_run.add_argument(
+        "--i-understand-lab",
+        dest="i_understand_lab",
+        action="store_true",
+        help=(
+            "race_toctou: acknowledge lab-first race pack; required with "
+            "--scope AND --i-own-this for open-internet targets. Does NOT "
+            "raise hard caps."
+        ),
     )
     pack_run.set_defaults(func=cmd_hunt_pack_run)
 
@@ -707,7 +763,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack",
         dest="pack_id",
         default=None,
-        help="Filter findings by pack id (e.g. business_logic | bola_idor_bfla | ato_oauth_oidc)",
+        help="Filter findings by pack id (e.g. race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
         "-o",

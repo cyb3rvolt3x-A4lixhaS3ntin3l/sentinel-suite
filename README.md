@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice4 shipped** — `business_logic` assistant v0 (FLOW/STEP map + coach hints + human gate) + `bola_idor_bfla` / `ato_oauth_oidc` intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, race/TOCTOU packs, live SSRF collaborator, full coach UI, Tauri, PyPI publish |
+| **Status** | **Phase C slice5 shipped** — `race_toctou` hard-capped lab pack (workers≤4 / requests≤20 / duration≤5s) + `business_logic` / `bola_idor_bfla` / `ato_oauth_oidc` intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, live SSRF collaborator, full coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -38,6 +38,10 @@ sentinel hunt pack run bola_idor_bfla --program demo --i-own-this \
 sentinel hunt report demo --pack bola_idor_bfla -o ./bola-report.md
 sentinel hunt pack run business_logic --program demo --i-own-this
 sentinel hunt report demo --pack business_logic -o ./bl-report.md
+sentinel hunt pack run race_toctou --program demo --i-own-this --i-understand-lab
+sentinel hunt pack run race_toctou --program demo --i-own-this --i-understand-lab \
+  --max-workers 4 --max-requests 20 --max-duration 5
+sentinel hunt report demo --pack race_toctou -o ./race-report.md
 sentinel hunt confirm-finding demo <finding-id> --status confirmed --note 'lab review' --mark-role a
 ```
 
@@ -104,6 +108,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/PHASE_B_SLICE3.md`](docs/PHASE_B_SLICE3.md) | Slice3 L5 tech fingerprint |
 | [`docs/PHASE_B_SLICE4.md`](docs/PHASE_B_SLICE4.md) | Slice4 deeper L5 + L6 tech diffs |
 | [`docs/PHASE_C_SLICE4.md`](docs/PHASE_C_SLICE4.md) | Slice4 business_logic assistant v0 |
+| [`docs/PHASE_C_SLICE5.md`](docs/PHASE_C_SLICE5.md) | Slice5 race_toctou hard caps |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
 ## Layout
