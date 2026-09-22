@@ -1,15 +1,38 @@
 """sentinel_core — shared event graph, scope kernel, engine pin for Sentinel Suite."""
 
-from sentinel_core.engines import bin_dir, list_pinned, pin_engine, stamp_run
+from sentinel_core.engines import (
+    bin_dir,
+    detect_engine,
+    ensure_engine,
+    list_pinned,
+    pin_engine,
+    stamp_run,
+)
 from sentinel_core.events import EVENT_TYPES, Event
 from sentinel_core.graph import EventGraph
+from sentinel_core.http_guard import (
+    PreparedScopedRequest,
+    assert_url_in_scope,
+    host_from_url,
+    prepare_scoped_request,
+    scoped_request,
+)
 from sentinel_core.programs import (
     create_program,
     get_sentinel_home,
     open_graph,
     program_dir,
 )
-from sentinel_core.scope import Scope, ScopeDenied, load_scope_file, load_scope_text, parse_brief_stub
+from sentinel_core.scope import (
+    Scope,
+    ScopeDenied,
+    detect_brief_platform,
+    load_scope_file,
+    load_scope_text,
+    parse_brief,
+    parse_brief_stub,
+    scope_to_raw_text,
+)
 
 __version__ = "0.1.0"
 
@@ -17,18 +40,28 @@ __all__ = [
     "EVENT_TYPES",
     "Event",
     "EventGraph",
+    "PreparedScopedRequest",
     "Scope",
     "ScopeDenied",
+    "assert_url_in_scope",
     "bin_dir",
     "create_program",
+    "detect_brief_platform",
+    "detect_engine",
+    "ensure_engine",
     "get_sentinel_home",
+    "host_from_url",
     "list_pinned",
     "load_scope_file",
     "load_scope_text",
     "open_graph",
+    "parse_brief",
     "parse_brief_stub",
     "pin_engine",
+    "prepare_scoped_request",
     "program_dir",
+    "scope_to_raw_text",
+    "scoped_request",
     "stamp_run",
     "__version__",
 ]

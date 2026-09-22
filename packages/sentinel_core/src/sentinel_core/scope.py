@@ -1,4 +1,4 @@
-"""Scope kernel MVP — raw allow/deny + brief parser stub + hard kill."""
+"""Scope kernel MVP — raw allow/deny + multi-platform brief parsers + hard kill."""
 
 from __future__ import annotations
 
@@ -74,10 +74,19 @@ def load_scope_file(path: str | Path) -> Scope:
 
 
 _H1_IN_SCOPE = re.compile(
-    r"(?i)^\s*(?:\*\s*)?(?:in[\s-]?scope|scope)\s*[:\-]?\s*$"
+    r"(?i)^\s*(?:\*\s*)?(?:#{1,3}\s*)?(?:in[\s-]?scope|scope)\s*[:\-]?\s*$"
 )
 _H1_OUT_SCOPE = re.compile(
-    r"(?i)^\s*(?:\*\s*)?(?:out[\s-]?of[\s-]?scope|oos)\s*[:\-]?\s*$"
+    r"(?i)^\s*(?:\*\s*)?(?:#{1,3}\s*)?(?:out[\s-]?of[\s-]?scope|oos)\s*[:\-]?\s*$"
+)
+# Bugcrowd / generic section variants
+_BC_IN_SCOPE = re.compile(
+    r"(?i)^\s*(?:#{1,3}\s*)?(?:\*\*)?(?:targets?|in[\s-]?scope(?:\s+targets?)?|"
+    r"scope\s+targets?|assets?\s+in\s+scope)(?:\*\*)?\s*[:\-]?\s*$"
+)
+_BC_OUT_SCOPE = re.compile(
+    r"(?i)^\s*(?:#{1,3}\s*)?(?:\*\*)?(?:out[\s-]?of[\s-]?scope(?:\s+targets?)?|"
+    r"excluded?(?:\s+targets?)?|not\s+in\s+scope)(?:\*\*)?\s*[:\-]?\s*$"
 )
 _BULLET = re.compile(r"^\s*[-*•]\s+(.+)$")
 _DOMAINISH = re.compile(
@@ -85,23 +94,21 @@ _DOMAINISH = re.compile(
 )
 
 
-def parse_brief_stub(text: str) -> Scope:
-    """
-    Minimal H1-ish / generic brief parser stub.
-
-    Looks for In-scope / Out-of-scope section headers and collects
-    bullet or bare domain-like tokens. Not a full platform importer —
-    Sprint 0 MVP only.
-    """
+def _parse_sectioned_brief(
+    text: str,
+    *,
+    in_patterns: list[re.Pattern[str]],
+    out_patterns: list[re.Pattern[str]],
+) -> Scope:
     allow: list[str] = []
     deny: list[str] = []
     mode: str | None = None
 
     for line in text.splitlines():
-        if _H1_IN_SCOPE.match(line):
+        if any(p.match(line) for p in in_patterns):
             mode = "allow"
             continue
-        if _H1_OUT_SCOPE.match(line):
+        if any(p.match(line) for p in out_patterns):
             mode = "deny"
             continue
         if mode is None:
@@ -117,3 +124,120 @@ def parse_brief_stub(text: str) -> Scope:
                 deny.append(dom.lower())
 
     return Scope(allow=allow, deny=deny)
+
+
+def parse_brief_h1(text: str) -> Scope:
+    """H1-ish brief: In Scope / Out of Scope section headers + domain bullets."""
+    return _parse_sectioned_brief(
+        text,
+        in_patterns=[_H1_IN_SCOPE],
+        out_patterns=[_H1_OUT_SCOPE],
+    )
+
+
+def parse_brief_bugcrowd(text: str) -> Scope:
+    """
+    Bugcrowd / generic section-header brief.
+
+    Accepts Targets / In Scope Targets / Out of Scope / Excluded variants.
+    Falls back to H1 patterns so mixed briefs still parse.
+    """
+    return _parse_sectioned_brief(
+        text,
+        in_patterns=[_BC_IN_SCOPE, _H1_IN_SCOPE],
+        out_patterns=[_BC_OUT_SCOPE, _H1_OUT_SCOPE],
+    )
+
+
+def _has_header(patterns: list[re.Pattern[str]], text: str) -> bool:
+    for line in text.splitlines():
+        if any(p.match(line) for p in patterns):
+            return True
+    return False
+
+
+def detect_brief_platform(text: str) -> str:
+    """
+    Heuristic platform detection for program briefs.
+
+    Returns one of: ``h1``, ``bugcrowd``, ``raw``, ``generic``.
+    """
+    sample = text[:8000]
+    lower = sample.lower()
+
+    has_h1 = _has_header([_H1_IN_SCOPE, _H1_OUT_SCOPE], sample)
+    has_bc = _has_header([_BC_IN_SCOPE, _BC_OUT_SCOPE], sample)
+    has_section = has_h1 or has_bc
+
+    bang_lines = sum(
+        1 for ln in sample.splitlines() if ln.strip().startswith("!")
+    )
+    if not has_section and bang_lines > 0:
+        return "raw"
+    if not has_section:
+        # Bare domain list → treat as raw
+        doms = _DOMAINISH.findall(sample)
+        if doms and all(
+            (ln.strip().startswith("#") or not ln.strip() or _DOMAINISH.search(ln))
+            for ln in sample.splitlines()
+        ):
+            return "raw"
+
+    # Prefer bugcrowd when Targets / Excluded style headers present
+    if has_bc and (
+        "bugcrowd" in lower
+        or "targets" in lower
+        or "excluded" in lower
+    ):
+        return "bugcrowd"
+
+    if has_h1:
+        return "h1"
+
+    if has_section:
+        return "generic"
+
+    return "raw"
+
+
+def parse_brief(text: str, platform: str = "auto") -> Scope:
+    """
+    Parse a program brief into a Scope.
+
+    platform: auto | h1 | bugcrowd | generic | raw
+    """
+    plat = (platform or "auto").strip().lower()
+    if plat == "auto":
+        plat = detect_brief_platform(text)
+
+    if plat == "raw":
+        return load_scope_text(text)
+    if plat == "h1":
+        return parse_brief_h1(text)
+    if plat in ("bugcrowd", "generic"):
+        return parse_brief_bugcrowd(text)
+
+    raise ValueError(
+        f"unknown brief platform: {platform!r} "
+        "(expected auto|h1|bugcrowd|generic|raw)"
+    )
+
+
+def parse_brief_stub(text: str) -> Scope:
+    """
+    Backward-compatible H1-ish stub — delegates to parse_brief(..., \"h1\").
+    """
+    return parse_brief(text, platform="h1")
+
+
+def scope_to_raw_text(scope: Scope) -> str:
+    """Serialize Scope back to raw allow/deny lines for scope.txt."""
+    lines = [
+        "# Generated by sentinel program import-brief",
+        "# Allow one host/domain per line; lines starting with ! are deny",
+    ]
+    for a in scope.allow:
+        lines.append(a)
+    for d in scope.deny:
+        lines.append(f"!{d}")
+    return "\n".join(lines) + "\n"

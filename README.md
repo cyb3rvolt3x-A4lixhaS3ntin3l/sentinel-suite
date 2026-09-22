@@ -20,7 +20,15 @@ pip install -e packages/sentinel_core \
 pytest -q
 sentinel doctor
 sentinel program init demo
+sentinel program import-brief demo ./brief.txt --platform auto
 ```
+
+### Scope / HTTP guard / engines (days 3–5)
+
+- **Briefs:** `parse_brief(text, platform="auto|h1|bugcrowd|generic|raw")` + `detect_brief_platform`.
+- **HTTP hard-kill:** `assert_url_in_scope(scope, url)` / `scoped_request(...)` — host checked via `scope.hard_kill` before any network.
+- **Engines:** `detect_engine(name)`, `ensure_engine(..., download=False)` — download is **deferred** (detect+stamp only; honesty over fake fetch).
+- **Bridges:** ShadowsEye emits DOMAIN/DNS_NAME/IP/OPEN_PORT + `inventory_to_events`; Gungnir emits FINDING/EVIDENCE + `emit_verified_finding`.
 
 **Future pipx story (branding from day one; not published yet):**
 
@@ -35,7 +43,7 @@ pipx install sentinel-suite      # both + `sentinel` CLI
 - **ShadowsEye (Eye)** watches the attack surface and feeds the shared event graph (interestingness + diffs first — Phase B).
 - **Gungnir (Hunt)** proves findings with hunt packs and evidence; it does not remap the surface unless asked.
 - **`sentinel_core`** is the invisible shared library: event schema v1, SQLite WAL graph per program under `SENTINEL_HOME` (default `~/.sentinel`), scope kernel (OOS = hard kill), and engine pin under `~/.sentinel/bin/`.
-- Thin **bridge stubs** in this monorepo emit/consume minimal events so days 3–5 have a place to land; they are **not** ports of the live ShadowsEye/Gungnir CLIs.
+- Thin **bridges** emit inventory/finding events (DOMAIN/DNS_NAME/IP/OPEN_PORT, FINDING/EVIDENCE); they are **not** ports of the live ShadowsEye/Gungnir CLIs.
 - **workers/** is a stub for future Go/Rust hot-path binaries. Guard SDK / `sentinelagent-guard` is a separate product and is **never** touched here.
 
 ## Ethics fence
@@ -55,9 +63,9 @@ pipx install sentinel-suite      # both + `sentinel` CLI
 
 ```text
 packages/sentinel_core   # real library (schema, graph, scope, engines)
-packages/shadowseye      # thin event-emit stub
-packages/gungnir         # thin stub + scope/lab gate
-packages/sentinel_cli    # `sentinel` → doctor, program init
+packages/shadowseye      # Eye inventory event emitters
+packages/gungnir         # Hunt finding/evidence + scope/lab gate
+packages/sentinel_cli    # `sentinel` → doctor, program init/import-brief
 workers/                 # Go later (README only)
 tests/                   # suite tests
 docs/HUMAN-QUEUE.md      # CI OAuth / mirror / license follow-ups

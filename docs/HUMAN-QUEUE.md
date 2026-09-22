@@ -31,10 +31,17 @@ Items that need a human (OAuth scope, Founder decision, or later day work). Not 
 3. **License re-eval** — Founder Apache-2.0 preference vs MIT consistency (see `docs/LICENSE_NOTE.md`).
 4. **PyPI publish** — not in Sprint 0; install via editable clone until then.
 5. **Guard SDK** — never touch; separate product.
+6. **Engine binary download** — Sprint 0 `ensure_engine(..., download=True)` returns `download_deferred` (detect+stamp only; no arbitrary internet fetches). Human/day 6–7 may wire a vetted allowlist download path.
 
-## Days 3–5 land here
+## Days 3–5 landed (this ship)
 
-- Expand scope kernel (more brief formats + shared HTTP client hard-kill wrapper).
-- Engine pin: detect-or-download path (still no PATH mutation).
-- Bridge live ShadowsEye/Gungnir modules to emit real events (beyond stubs).
-- `sentinel program import-brief` stub → real brief import.
+- Scope kernel: `parse_brief` (h1 / bugcrowd / generic / raw), `detect_brief_platform`, HTTP hard-kill via `http_guard` (`assert_url_in_scope` / `scoped_request`).
+- Engine pin: `detect_engine`, `ensure_engine` (download deferred); doctor lists pinned vs detected.
+- Eye/Hunt bridges: DNS_NAME / IP / OPEN_PORT / inventory_to_events; EVIDENCE / emit_verified_finding / scoped emit.
+- CLI: `sentinel program import-brief <id> <file> [--platform auto|h1|bugcrowd|raw]`.
+
+## Days 6–10 leftovers
+
+- Deeper live module wiring (call inventory emitters from a thin Eye runner; hunt pack → verified finding path).
+- Optional vetted engine download allowlist (still no PATH mutation).
+- CI workflow push once `workflow` OAuth scope is available.

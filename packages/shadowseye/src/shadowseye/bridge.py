@@ -1,8 +1,10 @@
-"""Emit minimal ShadowsEye-shaped events into sentinel_core graph."""
+"""Emit ShadowsEye-shaped inventory events into sentinel_core graph."""
 
 from __future__ import annotations
 
-from sentinel_core import Event, EventGraph
+from typing import Any
+
+from sentinel_core import Event, EventGraph, Scope
 
 
 def emit_domain_event(
@@ -25,3 +27,203 @@ def emit_domain_event(
     )
     graph.insert(event)
     return event
+
+
+def emit_dns_name_event(
+    graph: EventGraph,
+    *,
+    program_id: str,
+    name: str,
+    parents: list[str] | None = None,
+    confidence: float = 0.85,
+    source_module: str = "shadowseye.bridge",
+    extra: dict[str, Any] | None = None,
+) -> Event:
+    """DNS_NAME event (hostname / FQDN discovered via inventory)."""
+    payload: dict[str, Any] = {"name": name, **(extra or {})}
+    event = Event(
+        type="DNS_NAME",
+        source_module=source_module,
+        program_id=program_id,
+        parents=list(parents or []),
+        confidence=confidence,
+        payload=payload,
+    )
+    graph.insert(event)
+    return event
+
+
+def emit_ip_event(
+    graph: EventGraph,
+    *,
+    program_id: str,
+    ip: str,
+    parents: list[str] | None = None,
+    confidence: float = 0.85,
+    source_module: str = "shadowseye.bridge",
+    host: str | None = None,
+    extra: dict[str, Any] | None = None,
+) -> Event:
+    """IP event. Optional host field for reverse linkage honesty."""
+    payload: dict[str, Any] = {"ip": ip, **(extra or {})}
+    if host:
+        payload["host"] = host
+    event = Event(
+        type="IP",
+        source_module=source_module,
+        program_id=program_id,
+        parents=list(parents or []),
+        confidence=confidence,
+        payload=payload,
+    )
+    graph.insert(event)
+    return event
+
+
+def emit_open_port_event(
+    graph: EventGraph,
+    *,
+    program_id: str,
+    host: str,
+    port: int,
+    service: str | None = None,
+    parents: list[str] | None = None,
+    confidence: float = 0.8,
+    source_module: str = "shadowseye.bridge",
+    extra: dict[str, Any] | None = None,
+) -> Event:
+    """OPEN_PORT event — host + port (+ optional service string)."""
+    payload: dict[str, Any] = {"host": host, "port": int(port), **(extra or {})}
+    if service:
+        payload["service"] = service
+    event = Event(
+        type="OPEN_PORT",
+        source_module=source_module,
+        program_id=program_id,
+        parents=list(parents or []),
+        confidence=confidence,
+        payload=payload,
+    )
+    graph.insert(event)
+    return event
+
+
+def scoped_emit_domain(
+    graph: EventGraph,
+    scope: Scope,
+    *,
+    program_id: str,
+    domain: str,
+    parents: list[str] | None = None,
+    confidence: float = 0.9,
+) -> Event:
+    """hard_kill domain first, then emit DOMAIN."""
+    scope.hard_kill(domain)
+    return emit_domain_event(
+        graph,
+        program_id=program_id,
+        domain=domain,
+        parents=parents,
+        confidence=confidence,
+    )
+
+
+def inventory_to_events(
+    graph: EventGraph,
+    program_id: str,
+    inventory: dict[str, Any],
+) -> list[Event]:
+    """
+    Convert a minimal ShadowsEye-lite inventory dict into linked events.
+
+    Expected shape (all keys optional)::
+
+        {
+          \"domains\": [\"example.com\", ...],
+          \"dns_names\": [\"www.example.com\", ...] | [{\"name\": ..., \"parent\": ...}],
+          \"ips\": [\"1.2.3.4\", ...] | [{\"ip\": ..., \"host\": ...}],
+          \"ports\": [{\"host\": ..., \"port\": 443, \"service\": \"https?\"}, ...],
+        }
+
+    Parents are linked where obvious (dns_name → matching domain; port → ip/domain).
+    Does not perform network I/O.
+    """
+    events: list[Event] = []
+    domain_ids: dict[str, str] = {}
+
+    for raw in inventory.get("domains") or []:
+        domain = raw if isinstance(raw, str) else str(raw.get("domain", ""))
+        if not domain:
+            continue
+        ev = emit_domain_event(graph, program_id=program_id, domain=domain)
+        domain_ids[domain.lower()] = ev.id
+        events.append(ev)
+
+    def _parent_for_host(host: str) -> list[str]:
+        h = host.lower().rstrip(".")
+        if h in domain_ids:
+            return [domain_ids[h]]
+        # subdomain-of known apex
+        for apex, eid in domain_ids.items():
+            if h.endswith("." + apex):
+                return [eid]
+        return []
+
+    for raw in inventory.get("dns_names") or []:
+        if isinstance(raw, str):
+            name, parent_hint = raw, None
+        else:
+            name = str(raw.get("name") or raw.get("dns_name") or "")
+            parent_hint = raw.get("parent") or raw.get("domain")
+        if not name:
+            continue
+        parents = []
+        if parent_hint and str(parent_hint).lower() in domain_ids:
+            parents = [domain_ids[str(parent_hint).lower()]]
+        else:
+            parents = _parent_for_host(name)
+        ev = emit_dns_name_event(
+            graph, program_id=program_id, name=name, parents=parents
+        )
+        events.append(ev)
+
+    ip_ids: dict[str, str] = {}
+    for raw in inventory.get("ips") or []:
+        if isinstance(raw, str):
+            ip, host = raw, None
+        else:
+            ip = str(raw.get("ip") or "")
+            host = raw.get("host")
+        if not ip:
+            continue
+        parents = _parent_for_host(str(host)) if host else []
+        ev = emit_ip_event(
+            graph, program_id=program_id, ip=ip, host=host, parents=parents
+        )
+        ip_ids[ip] = ev.id
+        events.append(ev)
+
+    for raw in inventory.get("ports") or []:
+        if not isinstance(raw, dict):
+            continue
+        host = str(raw.get("host") or "")
+        port = raw.get("port")
+        if not host or port is None:
+            continue
+        service = raw.get("service")
+        parents = _parent_for_host(host)
+        # Prefer IP parent when inventory linked host→ip
+        for ip, eid in ip_ids.items():
+            # weak link: if only one IP, still prefer domain parents first
+            _ = ip
+        ev = emit_open_port_event(
+            graph,
+            program_id=program_id,
+            host=host,
+            port=int(port),
+            service=str(service) if service else None,
+            parents=parents,
+        )
+        events.append(ev)
+
+    return events
