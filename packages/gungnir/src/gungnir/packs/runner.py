@@ -17,6 +17,7 @@ from gungnir.packs.roles import (
 )
 from gungnir.packs.surface import detect_auth_surface_candidates
 from sentinel_core import (
+    Event,
     Scope,
     ScopeDenied,
     create_program,
@@ -162,9 +163,93 @@ def run_pack(
         raise PackRunError(f"pack {pack_id} returned non-dict result", exit_code=1)
 
     candidates = list(result.get("candidates") or [])
+    flow_rows = list(result.get("flows") or [])
+    step_rows = list(result.get("steps") or [])
+    hint_rows = list(result.get("hints") or [])
     emitted: list[dict[str, Any]] = []
+    flow_events: list[dict[str, Any]] = []
+    step_events: list[dict[str, Any]] = []
+    flow_id_map: dict[str, str] = {}
 
     with open_graph(program_id) as graph:
+        src = f"gungnir.packs.{pack_id}"
+
+        for flow in flow_rows:
+            host_s = str(flow.get("host") or "") or None
+            if scope is not None and host_s:
+                try:
+                    scope.hard_kill(host_s)
+                except ScopeDenied:
+                    continue
+            local_id = str(flow.get("local_id") or flow.get("id") or "")
+            payload = {
+                k: v
+                for k, v in flow.items()
+                if k not in ("local_id", "confidence", "parents")
+            }
+            payload["pack_id"] = pack_id
+            payload["pack_class"] = manifest.pack_class
+            payload.setdefault("human_marked", False)
+            fe = Event(
+                type="FLOW",
+                source_module=src,
+                program_id=program_id,
+                confidence=float(flow.get("confidence") or 0.25),
+                payload=payload,
+            )
+            graph.insert(fe)
+            if local_id:
+                flow_id_map[local_id] = fe.id
+            flow_events.append(
+                {
+                    "id": fe.id,
+                    "type": "FLOW",
+                    "local_id": local_id or None,
+                    "kind": payload.get("kind"),
+                    "name": payload.get("name"),
+                    "host": host_s,
+                    "confidence": fe.confidence,
+                }
+            )
+
+        for step in step_rows:
+            host_s = str(step.get("host") or "") or None
+            if scope is not None and host_s:
+                try:
+                    scope.hard_kill(host_s)
+                except ScopeDenied:
+                    continue
+            parent_local = str(step.get("flow_local_id") or "")
+            parents = (
+                [flow_id_map[parent_local]] if parent_local in flow_id_map else []
+            )
+            payload = {
+                k: v
+                for k, v in step.items()
+                if k not in ("flow_local_id", "confidence", "parents")
+            }
+            payload["pack_id"] = pack_id
+            payload.setdefault("human_marked", False)
+            se = Event(
+                type="STEP",
+                source_module=src,
+                program_id=program_id,
+                parents=parents,
+                confidence=float(step.get("confidence") or 0.25),
+                payload=payload,
+            )
+            graph.insert(se)
+            step_events.append(
+                {
+                    "id": se.id,
+                    "type": "STEP",
+                    "flow_id": parents[0] if parents else None,
+                    "name": payload.get("name"),
+                    "index": payload.get("index"),
+                    "host": host_s,
+                }
+            )
+
         for item in candidates:
             title = str(item.get("title") or "pack candidate")
             host = item.get("host")
@@ -203,6 +288,7 @@ def run_pack(
                     "checklist",
                     "evidence_summary",
                     "evidence_stub",
+                    "flow_local_id",
                 )
             }
             payload["checklist"] = checklist
@@ -210,6 +296,16 @@ def run_pack(
             payload["pack_class"] = manifest.pack_class
             for ck, cv in checklist.items():
                 payload[ck] = cv
+
+            flow_local = item.get("flow_local_id")
+            parents: list[str] = list(item.get("parents") or [])
+            if flow_local and str(flow_local) in flow_id_map:
+                parents.append(flow_id_map[str(flow_local)])
+            if "coach_hints" not in payload and hint_rows and flow_local:
+                for h in hint_rows:
+                    if h.get("flow_id") == flow_local:
+                        payload["coach_hints"] = list(h.get("questions") or [])
+                        break
 
             ev = emit_verified_finding(
                 graph,
@@ -220,7 +316,8 @@ def run_pack(
                 scope=scope if host_s else None,
                 confidence=float(item.get("confidence") or 0.4),
                 payload=payload,
-                source_module=f"gungnir.packs.{pack_id}",
+                parents=parents,
+                source_module=src,
             )
             record: dict[str, Any] = {
                 "id": ev.id,
@@ -239,7 +336,7 @@ def run_pack(
                     summary=str(evidence_summary or "pack evidence stub"),
                     parents=[ev.id],
                     payload={"stub": evidence_stub} if evidence_stub else None,
-                    source_module=f"gungnir.packs.{pack_id}",
+                    source_module=src,
                 )
                 record["evidence_id"] = evi.id
             emitted.append(record)
@@ -251,7 +348,12 @@ def run_pack(
         "surface_candidates": len(surface),
         "candidates_in": len(candidates),
         "findings_emitted": len(emitted),
+        "flows_emitted": len(flow_events),
+        "steps_emitted": len(step_events),
         "events": emitted,
+        "flows": flow_events,
+        "steps": step_events,
+        "hints": hint_rows,
         "scoped": scope is not None,
         "i_own_this": bool(i_own_this),
         "roles_loaded": sorted(roles.keys()),

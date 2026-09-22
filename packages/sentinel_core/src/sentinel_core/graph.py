@@ -87,6 +87,49 @@ class EventGraph:
         ).fetchall()
         return [self._row_to_event(r) for r in rows]
 
+    def update_event(
+        self,
+        event_id: str,
+        *,
+        payload: dict | None = None,
+        confidence: float | None = None,
+        parents: Iterable[str] | None = None,
+        touch_last_seen: bool = True,
+    ) -> Event:
+        """Update payload / confidence / parents for an existing event."""
+        from datetime import datetime, timezone
+
+        event = self.get(event_id)
+        if event is None:
+            raise KeyError(f"event not found: {event_id}")
+        if payload is not None:
+            event.payload = dict(payload)
+        if confidence is not None:
+            event.confidence = float(confidence)
+        if parents is not None:
+            event.parents = list(parents)
+        if touch_last_seen:
+            event.last_seen = datetime.now(timezone.utc)
+        self._conn.execute(
+            """
+            UPDATE events SET
+                parents_json = ?,
+                last_seen = ?,
+                confidence = ?,
+                payload_json = ?
+            WHERE id = ?
+            """,
+            (
+                json.dumps(list(event.parents)),
+                event.last_seen.isoformat(),
+                float(event.confidence),
+                json.dumps(event.payload),
+                event_id,
+            ),
+        )
+        self._conn.commit()
+        return event
+
     def link_parents(self, event_id: str, parent_ids: Iterable[str]) -> None:
         event = self.get(event_id)
         if event is None:

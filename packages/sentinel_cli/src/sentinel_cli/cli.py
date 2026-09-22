@@ -431,9 +431,14 @@ def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
                 "pack_class": result["pack_class"],
                 "surface_candidates": result["surface_candidates"],
                 "findings_emitted": result["findings_emitted"],
+                "flows_emitted": result.get("flows_emitted", 0),
+                "steps_emitted": result.get("steps_emitted", 0),
                 "roles_loaded": result["roles_loaded"],
                 "scoped": result["scoped"],
                 "events": result["events"],
+                "flows": result.get("flows") or [],
+                "steps": result.get("steps") or [],
+                "hints": result.get("hints") or [],
                 "pack_notes": result.get("pack_notes") or [],
             },
             indent=2,
@@ -469,10 +474,31 @@ def cmd_hunt_report(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_hunt_confirm_finding(args: argparse.Namespace) -> int:
+    """Explicit human confirm of a FINDING (never auto-VERIFIED by packs)."""
+    from gungnir.packs import ConfirmError, confirm_finding
+
+    try:
+        result = confirm_finding(
+            args.program_id,
+            args.finding_id,
+            status=args.status,
+            note=args.note,
+            mark_role=args.mark_role,
+        )
+    except ConfirmError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return int(exc.exit_code)
+
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase C slice3)",
+        description="Sentinel Suite CLI (Phase C slice4)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -640,7 +666,7 @@ def build_parser() -> argparse.ArgumentParser:
         "run",
         help="Run a hunt pack (fail-closed on missing roles / scope)",
     )
-    pack_run.add_argument("pack_id", help="Pack id (e.g. bola_idor_bfla | ato_oauth_oidc)")
+    pack_run.add_argument("pack_id", help="Pack id (e.g. business_logic | bola_idor_bfla | ato_oauth_oidc)")
     pack_run.add_argument(
         "--program",
         dest="program_id",
@@ -681,7 +707,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack",
         dest="pack_id",
         default=None,
-        help="Filter findings by pack id (e.g. bola_idor_bfla | ato_oauth_oidc)",
+        help="Filter findings by pack id (e.g. business_logic | bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
         "-o",
@@ -691,6 +717,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write markdown to FILE (default: stdout)",
     )
     hunt_report.set_defaults(func=cmd_hunt_report)
+
+
+    hunt_confirm = hunt_sub.add_parser(
+        "confirm-finding",
+        help=(
+            "Human gate: explicitly mark a FINDING confirmed/verified "
+            "(packs never auto-VERIFIED)"
+        ),
+    )
+    hunt_confirm.add_argument("program_id", help="Program id under SENTINEL_HOME")
+    hunt_confirm.add_argument(
+        "finding_id",
+        help="FINDING event id from the program graph",
+    )
+    hunt_confirm.add_argument(
+        "--status",
+        default="confirmed",
+        choices=[
+            "confirmed",
+            "verified",
+            "needs_human",
+            "unverified",
+            "not_reproduced",
+            "skipped",
+        ],
+        help="Verification status to set (default: confirmed)",
+    )
+    hunt_confirm.add_argument(
+        "--note",
+        default=None,
+        help="Optional human review note stored on the finding payload",
+    )
+    hunt_confirm.add_argument(
+        "--mark-role",
+        dest="mark_role",
+        default=None,
+        help="Optional role label that performed the confirm (e.g. a)",
+    )
+    hunt_confirm.set_defaults(func=cmd_hunt_confirm_finding)
+
 
     return p
 

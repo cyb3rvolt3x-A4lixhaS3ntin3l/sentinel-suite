@@ -34,6 +34,8 @@ EVENT_TYPES = frozenset(
         "FINDING",
         "EVIDENCE",
         "CHAIN",
+        "FLOW",
+        "STEP",
     }
 )
 

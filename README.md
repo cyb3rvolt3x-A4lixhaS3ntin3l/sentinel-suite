@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice3 shipped** — `bola_idor_bfla` v0 (dual-role IDOR/BFLA fixtures) + `ato_oauth_oidc` v0.2 intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, race packs, full report factory, coach UI, Tauri, PyPI publish |
+| **Status** | **Phase C slice4 shipped** — `business_logic` assistant v0 (FLOW/STEP map + coach hints + human gate) + `bola_idor_bfla` / `ato_oauth_oidc` intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, race/TOCTOU packs, live SSRF collaborator, full coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -36,10 +36,13 @@ sentinel hunt report demo --pack ato_oauth_oidc -o ./report.md
 sentinel hunt pack run bola_idor_bfla --program demo --i-own-this \
   --role-a ./roles/a.json --role-b ./roles/b.json
 sentinel hunt report demo --pack bola_idor_bfla -o ./bola-report.md
+sentinel hunt pack run business_logic --program demo --i-own-this
+sentinel hunt report demo --pack business_logic -o ./bl-report.md
+sentinel hunt confirm-finding demo <finding-id> --status confirmed --note 'lab review' --mark-role a
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
-Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`); `bola_idor_bfla` also requires Role B at `roles/b.json`.
+Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`); `bola_idor_bfla` also requires Role B at `roles/b.json`. `business_logic` findings stay `needs_human` until `sentinel hunt confirm-finding`.
 
 Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N` · `--no-fingerprint` · `--no-http`.
 ```bash
@@ -100,6 +103,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/PHASE_B_SLICE2.md`](docs/PHASE_B_SLICE2.md) | Slice2 reality table |
 | [`docs/PHASE_B_SLICE3.md`](docs/PHASE_B_SLICE3.md) | Slice3 L5 tech fingerprint |
 | [`docs/PHASE_B_SLICE4.md`](docs/PHASE_B_SLICE4.md) | Slice4 deeper L5 + L6 tech diffs |
+| [`docs/PHASE_C_SLICE4.md`](docs/PHASE_C_SLICE4.md) | Slice4 business_logic assistant v0 |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
 ## Layout
