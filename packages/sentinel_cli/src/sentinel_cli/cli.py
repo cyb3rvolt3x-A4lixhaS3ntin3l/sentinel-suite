@@ -369,10 +369,83 @@ def cmd_hunt_run(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_hunt_pack_list(_: argparse.Namespace) -> int:
+    from gungnir.packs import list_pack_manifests
+
+    packs = list_pack_manifests()
+    if not packs:
+        print("no hunt packs registered")
+        return 0
+    rows = []
+    for m in packs:
+        rows.append(
+            {
+                "id": m.id,
+                "class": m.pack_class,
+                "needs_roles": m.needs_roles,
+                "noise_class": m.noise_class,
+                "version": m.version,
+                "description": m.description,
+                "consumes": list(m.consumes),
+                "emits": list(m.emits),
+            }
+        )
+    print(json.dumps({"packs": rows, "count": len(rows)}, indent=2))
+    return 0
+
+
+def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
+    from gungnir.packs import PackRunError, run_pack
+    from sentinel_core import ScopeDenied
+
+    if not args.scope_path and not args.i_own_this:
+        print(
+            "error: hunt pack run requires --scope PATH or --i-own-this",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        result = run_pack(
+            args.pack_id,
+            args.program_id,
+            scope_path=args.scope_path,
+            i_own_this=args.i_own_this,
+            urls=list(args.urls or []),
+            role_a_path=args.role_a_path,
+            role_b_path=args.role_b_path,
+        )
+    except PackRunError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return int(exc.exit_code)
+    except ScopeDenied as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    print(
+        json.dumps(
+            {
+                "program_id": result["program_id"],
+                "pack_id": result["pack_id"],
+                "pack_class": result["pack_class"],
+                "surface_candidates": result["surface_candidates"],
+                "findings_emitted": result["findings_emitted"],
+                "roles_loaded": result["roles_loaded"],
+                "scoped": result["scoped"],
+                "events": result["events"],
+                "pack_notes": result.get("pack_notes") or [],
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase B slice4)",
+        description="Sentinel Suite CLI (Phase C slice1)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -503,7 +576,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     eye_run.set_defaults(func=cmd_eye_run)
 
-    hunt = sub.add_parser("hunt", help="Gungnir thin finding runner")
+    hunt = sub.add_parser("hunt", help="Gungnir findings + hunt packs")
     hunt_sub = hunt.add_subparsers(dest="hunt_cmd", required=True)
     hunt_run = hunt_sub.add_parser(
         "run",
@@ -529,6 +602,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip thin correlate_findings dedupe",
     )
     hunt_run.set_defaults(func=cmd_hunt_run)
+
+    hunt_pack = hunt_sub.add_parser("pack", help="Hunt packs (Phase C)")
+    pack_sub = hunt_pack.add_subparsers(dest="pack_cmd", required=True)
+
+    pack_list = pack_sub.add_parser("list", help="List registered hunt packs")
+    pack_list.set_defaults(func=cmd_hunt_pack_list)
+
+    pack_run = pack_sub.add_parser(
+        "run",
+        help="Run a hunt pack (fail-closed on missing roles / scope)",
+    )
+    pack_run.add_argument("pack_id", help="Pack id (e.g. ato_oauth_oidc)")
+    pack_run.add_argument(
+        "--program",
+        dest="program_id",
+        required=True,
+        help="Program id under SENTINEL_HOME",
+    )
+    _add_scope_gate_flags(pack_run)
+    pack_run.add_argument(
+        "--url",
+        dest="urls",
+        action="append",
+        default=[],
+        help="Auth/OAuth surface URL (repeatable); else Eye inventory",
+    )
+    pack_run.add_argument(
+        "--role-a",
+        dest="role_a_path",
+        default=None,
+        help="Path to Role A session JSON (default: program/roles/a.json)",
+    )
+    pack_run.add_argument(
+        "--role-b",
+        dest="role_b_path",
+        default=None,
+        help="Path to Role B session JSON (default: program/roles/b.json)",
+    )
+    pack_run.set_defaults(func=cmd_hunt_pack_run)
 
     return p
 

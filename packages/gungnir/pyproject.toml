@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gungnir"
 version = "0.1.0"
-description = "Gungnir thin bridge stub — scope gate + finding events (Sprint 0)"
+description = "Gungnir hunt packs + bridge — Phase C slice1"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = ["sentinel_core>=0.1.0"]
