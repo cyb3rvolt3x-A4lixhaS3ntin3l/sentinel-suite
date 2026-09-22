@@ -1,4 +1,4 @@
-# HUMAN-QUEUE — Sprint 0 Phase A + Phase B slice1
+# HUMAN-QUEUE — Sprint 0 Phase A + Phase B slice2
 
 Items that need a human (OAuth scope, Founder decision, or later work). Not blockers for local use of this scaffold.
 
@@ -19,10 +19,10 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 ## Open Founder decisions
 
 2. **License re-eval** — Founder Apache-2.0 preference vs MIT consistency (see `docs/LICENSE_NOTE.md`).
-3. **Engine binary allowlist hashes** — download path implemented; `ENGINE_ALLOWLIST` empty until a human pins third-party release hashes. Deferred catalog: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`. Empty allowlist ⇒ Eye `--no-tools` default (native + crt.sh stub only).
+3. **Engine binary allowlist hashes** — download path implemented; `ENGINE_ALLOWLIST` empty until Founder pins hashes. **Proposal (not applied):** `/workspace/deliverables/PHASE_B_ENGINE_HASH_PROPOSAL.md` (+ optional `docs/ENGINE_HASH_PROPOSAL.md`). Deferred: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`. Empty allowlist ⇒ Eye `--no-tools` default.
 4. ~~**Phase B GO**~~ — **slice1 shipped** (L0 program.yml brain, L2 native+crt.sh stub, L5 http probe lite, interestingness ranker, L6 watch diffs MVP).
 5. **Money pack later** — which pack after Eye pays (BOLA/IDOR vs ATO/OAuth)?
-6. **Next Phase B slice** — L1 identity lite (RDAP/ASN/MX stubs)? deeper CT + reverse-IP with scope-distance? httpx allowlist pin when hashes ready?
+6. ~~**Next Phase B slice**~~ — **slice2 shipped** (L1 identity lite + hardened crt.sh + reverse-IP scope-distance). Next: pin engine hashes after Founder vet / wire `--tools` / deeper L5 tech.
 
 ## Deferred (not this ship)
 
@@ -46,3 +46,11 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 - Founder review packet (box deliverables + optional `docs/SPRINT0_REVIEW.md`)
 - Thin README mirrors on live `gungnir` + `ShadowsEye` (pointer to monorepo; no code moves/deletes)
 - Still **no** `.github/workflows` push
+
+
+## Phase B slice2 landed (this ship)
+
+- L1: RDAP/MX/SPF (+ ASN stub) low-confidence identity inventory + events; `--no-identity`
+- L2: hardened `crtsh_query`; `reverse_ip_neighbours` with hard scope-distance; `--no-reverse-ip` / `--scope-distance`
+- Ranker: light MX-only demotion; Watch snapshot may include identity keys
+- Engine hash proposal written for Founder vetting — allowlist still empty

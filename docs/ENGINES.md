@@ -82,3 +82,13 @@ cp /path/to/tool "$SENTINEL_HOME/bin/toolname"
 python -c "from sentinel_core import pin_engine; pin_engine('toolname', '1.0.0')"
 sentinel doctor
 ```
+
+
+## Hash proposal (Founder vetting — not applied)
+
+Candidate release URLs + published checksums for `subfinder` / `httpx` are listed in:
+
+- `/workspace/deliverables/PHASE_B_ENGINE_HASH_PROPOSAL.md`
+- `docs/ENGINE_HASH_PROPOSAL.md` (same proposal; allowlist stays empty until approved)
+
+**Do not** treat those rows as allowlisted until a human verifies the artifact and decides zip-vs-binary install semantics.

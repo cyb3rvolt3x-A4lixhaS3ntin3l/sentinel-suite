@@ -59,6 +59,13 @@ def snapshot_from_inventory(inventory: dict[str, Any], *, ts: str | None = None)
                 if (d if isinstance(d, str) else d.get("domain"))
             }
         ),
+        "identity": sorted(
+            {
+                f"{r.get('kind')}:{r.get('value')}"
+                for r in (inventory.get("identity") or [])
+                if isinstance(r, dict) and r.get("kind") and r.get("value")
+            }
+        ),
     }
 
 

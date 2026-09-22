@@ -17,7 +17,8 @@ from sentinel_core import (
 from shadowseye.bridge import inventory_to_events
 from shadowseye.inventory import merge_sources, normalize_inventory
 from shadowseye.live_map import probe_http_inventory
-from shadowseye.passive import merge_crtsh_into_inventory
+from shadowseye.identity import merge_identity_into_inventory
+from shadowseye.passive import merge_crtsh_into_inventory, merge_reverse_ip_into_inventory
 from shadowseye.ranker import rank_inventory, sort_dns_names_by_rank
 from shadowseye.watch import watch_compare_and_persist
 
@@ -26,7 +27,8 @@ DEFAULT_SUBDOMAIN_WORDS: tuple[str, ...] = ("www", "api", "mail")
 DEFAULT_PORTS: tuple[int, ...] = (80, 443)
 
 # Layers enabled by this Phase B slice (honest labels for program.yml).
-PHASE_B_SLICE1_LAYERS: tuple[str, ...] = ("L0", "L2", "L5", "L6", "ranker")
+PHASE_B_SLICE1_LAYERS: tuple[str, ...] = ("L0", "L1", "L2", "L5", "L6", "ranker")
+PHASE_B_SLICE2_LAYERS = PHASE_B_SLICE1_LAYERS  # alias after slice2 landing
 
 
 def require_scope_or_lab(
@@ -185,7 +187,7 @@ def touch_program_yml_layers(
 
     update_program_yml_fields(
         program_id,
-        layers_enabled=list(layers or PHASE_B_SLICE1_LAYERS),
+        layers_enabled=list(layers or PHASE_B_SLICE2_LAYERS),
         updated_at=datetime.now(timezone.utc).isoformat(),
     )
 
@@ -210,13 +212,24 @@ def run_eye(
     http_opener: Callable[[str, float], tuple[int, bytes, str]] | None = None,
     watch: bool = False,
     rank: bool = True,
+    identity: bool = True,
+    rdap_fetcher: Callable[[str, float], bytes] | None = None,
+    mx_resolver: Callable[[str], list[str]] | None = None,
+    txt_resolver: Callable[[str], list[str]] | None = None,
+    identity_network: bool = False,
+    reverse_ip: bool = True,
+    reverse_ip_fetcher: Callable[[str, float], list[str]] | None = None,
+    reverse_ip_network: bool = False,
+    scope_distance: int = 1,
+    reverse_ip_max_results: int = 50,
 ) -> dict[str, Any]:
     """
     Require scope file OR --i-own-this, gather inventory, emit into program graph.
 
-    Phase B slice1:
-    - L2: native wordlist + optional crt.sh stub (mocked via crtsh_fetcher)
-    - L5: bounded ports (existing) + http probe (stdlib; injectable opener)
+    Phase B slice2:
+    - L1: identity lite (RDAP/ASN/MX/SPF) low-confidence; ``--no-identity`` to skip
+    - L2: native wordlist + hardened crt.sh + reverse-IP neighbours (scope-distance cap)
+    - L5: bounded ports + http probe (stdlib; injectable opener)
     - ranker: interestingness sort into inventory['ranked']
     - L6: ``watch=True`` persists runs/latest.json and returns diffs
     - ``no_tools=True`` (default): skip external engines (allowlist empty OK)
@@ -257,6 +270,28 @@ def run_eye(
             domains,
             fetcher=crtsh_fetcher,
             network=crtsh_network and crtsh_fetcher is None,
+        )
+
+    # L1 identity lite — RDAP / MX / SPF (injectable; default on)
+    if identity:
+        inventory = merge_identity_into_inventory(
+            inventory,
+            domains,
+            rdap_fetcher=rdap_fetcher,
+            mx_resolver=mx_resolver,
+            txt_resolver=txt_resolver,
+            network=identity_network and rdap_fetcher is None,
+        )
+
+    # L2 reverse-IP neighbours — hard scope-distance cap; stub empty without fetcher
+    if reverse_ip:
+        inventory = merge_reverse_ip_into_inventory(
+            inventory,
+            fetcher=reverse_ip_fetcher,
+            scope=scope,
+            max_distance=int(scope_distance),
+            max_results=int(reverse_ip_max_results),
+            network=reverse_ip_network and reverse_ip_fetcher is None,
         )
 
     # no_tools: engines deferred (empty allowlist). Flag retained for honesty.
@@ -313,7 +348,7 @@ def run_eye(
         "scoped": scope is not None,
         "i_own_this": bool(i_own_this),
         "no_tools": bool(no_tools),
-        "layers": list(PHASE_B_SLICE1_LAYERS),
+        "layers": list(PHASE_B_SLICE2_LAYERS),
     }
     if watch_result is not None:
         out["watch"] = watch_result

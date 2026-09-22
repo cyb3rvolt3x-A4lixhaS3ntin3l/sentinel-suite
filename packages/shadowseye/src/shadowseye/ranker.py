@@ -200,10 +200,22 @@ def rank_inventory(
             seen.add(name)
             keys.append(name)
 
+    # MX hosts from identity are slightly less interesting than admin/staging
+    mx_hosts = {
+        str(r.get("value") or "").strip().lower().rstrip(".")
+        for r in (inventory.get("identity") or [])
+        if isinstance(r, dict) and str(r.get("kind") or "").lower() == "mx"
+    }
+
     ranked: list[dict[str, Any]] = []
     for key in keys:
         fs = first_seen_map.get(key)
         score, reasons = score_hostname(key, first_seen=fs, now=now)
+        if key in mx_hosts and not any(
+            t in key.split(".") for t in ("admin", "staging", "api", "vpn", "dev")
+        ):
+            score -= 3.0
+            reasons = list(reasons) + ["identity_mx_only"]
         ranked.append({"key": key, "score": round(score, 2), "reasons": reasons})
 
     ranked.sort(key=lambda r: (-float(r["score"]), r["key"]))

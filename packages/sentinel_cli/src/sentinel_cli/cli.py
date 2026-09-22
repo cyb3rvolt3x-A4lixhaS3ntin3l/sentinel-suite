@@ -280,6 +280,9 @@ def cmd_eye_run(args: argparse.Namespace) -> int:
         http_probe=not getattr(args, "no_http", False),
         watch=bool(getattr(args, "watch", False)),
         rank=True,
+        identity=not getattr(args, "no_identity", False),
+        reverse_ip=not getattr(args, "no_reverse_ip", False),
+        scope_distance=int(getattr(args, "scope_distance", 1) or 1),
     )
     inv = result["inventory"]
     if getattr(args, "json_full", False):
@@ -296,8 +299,10 @@ def cmd_eye_run(args: argparse.Namespace) -> int:
                 "ports": inv.get("ports"),
                 "http": inv.get("http"),
                 "tech": inv.get("tech") or [],
+                "identity": inv.get("identity") or [],
                 "sources": inv.get("sources") or [],
                 "ranked": inv.get("ranked") or [],
+                "notes": inv.get("notes") or [],
             },
         }
         if "watch" in result:
@@ -312,6 +317,7 @@ def cmd_eye_run(args: argparse.Namespace) -> int:
             "ips": len(inv.get("ips") or []),
             "ports": inv.get("ports"),
             "http": len(inv.get("http") or []),
+            "identity": len(inv.get("identity") or []),
             "sources": inv.get("sources") or [],
             "ranked_top": (inv.get("ranked") or [])[:5],
         }
@@ -362,7 +368,7 @@ def cmd_hunt_run(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase B slice1)",
+        description="Sentinel Suite CLI (Phase B slice2)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -390,7 +396,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     imp.set_defaults(func=cmd_program_import_brief)
 
-    eye = sub.add_parser("eye", help="ShadowsEye L0/L2/L5 lite + watch/ranker")
+    eye = sub.add_parser("eye", help="ShadowsEye L0/L1/L2/L5 lite + watch/ranker")
     eye_sub = eye.add_subparsers(dest="eye_cmd", required=True)
     eye_run = eye_sub.add_parser(
         "run",
@@ -462,6 +468,24 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip L5 HTTP probes",
     )
+
+    eye_run.add_argument(
+        "--no-identity",
+        action="store_true",
+        help="Skip L1 identity lite (RDAP/MX/SPF); default is on",
+    )
+    eye_run.add_argument(
+        "--no-reverse-ip",
+        action="store_true",
+        help="Skip reverse-IP neighbour discovery",
+    )
+    eye_run.add_argument(
+        "--scope-distance",
+        type=int,
+        default=1,
+        help="Max scope-distance for reverse-IP neighbours (default 1)",
+    )
+
     eye_run.set_defaults(func=cmd_eye_run)
 
     hunt = sub.add_parser("hunt", help="Gungnir thin finding runner")

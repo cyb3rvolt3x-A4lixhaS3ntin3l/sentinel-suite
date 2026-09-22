@@ -14,8 +14,10 @@ def empty_inventory() -> dict[str, Any]:
         "ports": [],
         "http": [],
         "tech": [],
+        "identity": [],
         "sources": [],
         "ranked": [],
+        "notes": [],
     }
 
 
@@ -36,8 +38,10 @@ def normalize_inventory(raw: dict[str, Any] | None) -> dict[str, Any]:
         "ports",
         "http",
         "tech",
+        "identity",
         "sources",
         "ranked",
+        "notes",
     ):
         if key in raw and raw[key] is not None:
             out[key] = list(raw[key]) if isinstance(raw[key], (list, tuple)) else raw[key]

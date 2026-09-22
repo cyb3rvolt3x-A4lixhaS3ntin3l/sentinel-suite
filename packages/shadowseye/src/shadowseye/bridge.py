@@ -160,6 +160,41 @@ def scoped_emit_domain(
     )
 
 
+
+
+def emit_identity_event(
+    graph: EventGraph,
+    *,
+    program_id: str,
+    kind: str,
+    value: str,
+    parents: list[str] | None = None,
+    confidence: float = 0.35,
+    source_module: str = "shadowseye.identity",
+    extra: dict[str, Any] | None = None,
+) -> Event:
+    """IDENTITY (or ASN/ORG/EMAIL) event from L1 lite — low confidence until confirmed."""
+    payload: dict[str, Any] = {
+        "kind": kind,
+        "value": value,
+        "identity_kind": (extra or {}).get("identity_kind") or kind,
+        "confirmed": False,
+        **(extra or {}),
+    }
+    # Prefer typed events when kind maps cleanly
+    type_map = {"asn": "ASN", "org": "ORG", "email": "EMAIL", "mx": "IDENTITY", "spf": "IDENTITY", "rdap": "IDENTITY"}
+    ev_type = type_map.get(kind, "IDENTITY")
+    event = Event(
+        type=ev_type,
+        source_module=source_module,
+        program_id=program_id,
+        parents=list(parents or []),
+        confidence=confidence,
+        payload=payload,
+    )
+    graph.insert(event)
+    return event
+
 def inventory_to_events(
     graph: EventGraph,
     program_id: str,
@@ -282,6 +317,38 @@ def inventory_to_events(
             status=int(status) if status is not None else None,
             title=str(title) if title else None,
             parents=parents,
+        )
+        events.append(ev)
+
+
+    for raw in inventory.get("identity") or []:
+        if not isinstance(raw, dict):
+            continue
+        kind = str(raw.get("kind") or "")
+        value = str(raw.get("value") or "")
+        if not kind or not value:
+            continue
+        # skip honest stubs that are placeholders only if value starts with stub:
+        # still emit them so inventory honesty is visible on the graph
+        conf = float(raw.get("confidence") or 0.35)
+        domain = raw.get("domain")
+        parents: list[str] = []
+        if domain and str(domain).lower() in domain_ids:
+            parents = [domain_ids[str(domain).lower()]]
+        extra = {
+            k: v
+            for k, v in raw.items()
+            if k not in ("kind", "value", "confidence", "source")
+        }
+        extra["source"] = raw.get("source")
+        ev = emit_identity_event(
+            graph,
+            program_id=program_id,
+            kind=kind,
+            value=value,
+            parents=parents,
+            confidence=conf,
+            extra=extra,
         )
         events.append(ev)
 
