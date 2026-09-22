@@ -442,10 +442,37 @@ def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_hunt_report(args: argparse.Namespace) -> int:
+    """Thin markdown report from graph findings + evidence (no LLM steps)."""
+    from gungnir.packs.report import export_report
+
+    result = export_report(
+        args.program_id,
+        pack_id=args.pack_id,
+        output=args.output,
+    )
+    if args.output:
+        print(
+            json.dumps(
+                {
+                    "program_id": result["program_id"],
+                    "pack_id": result["pack_id"],
+                    "findings": result["findings"],
+                    "output": result["output"],
+                },
+                indent=2,
+            )
+        )
+    else:
+        print(result["markdown"])
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase C slice1)",
+        description="Sentinel Suite CLI (Phase C slice2)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -641,6 +668,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to Role B session JSON (default: program/roles/b.json)",
     )
     pack_run.set_defaults(func=cmd_hunt_pack_run)
+
+    hunt_report = hunt_sub.add_parser(
+        "report",
+        help=(
+            "Export thin platform-shaped markdown for pack findings "
+            "(Steps from evidence records only — no LLM)"
+        ),
+    )
+    hunt_report.add_argument("program_id", help="Program id under SENTINEL_HOME")
+    hunt_report.add_argument(
+        "--pack",
+        dest="pack_id",
+        default=None,
+        help="Filter findings by pack id (e.g. ato_oauth_oidc)",
+    )
+    hunt_report.add_argument(
+        "-o",
+        "--output",
+        dest="output",
+        default=None,
+        help="Write markdown to FILE (default: stdout)",
+    )
+    hunt_report.set_defaults(func=cmd_hunt_report)
 
     return p
 

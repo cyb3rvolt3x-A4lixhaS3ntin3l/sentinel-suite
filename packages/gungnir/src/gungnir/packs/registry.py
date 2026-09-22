@@ -24,6 +24,7 @@ def _iter_pack_modules() -> list[str]:
         "runner",
         "surface",
         "checklist",
+        "report",
     }
     names: list[str] = []
     for mod in pkgutil.iter_modules(packs_pkg.__path__, packs_pkg.__name__ + "."):

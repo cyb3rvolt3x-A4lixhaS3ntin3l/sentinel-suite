@@ -1,6 +1,6 @@
 # gungnir (monorepo package)
 
-**Honest status (Phase C slice1):** bridge + thin hunt runner + **Hunt Pack framework MVP** + first money pack **`ato_oauth_oidc` v0**.
+**Honest status (Phase C slice2):** bridge + thin hunt runner + **Hunt Pack framework** + money pack **`ato_oauth_oidc` v0.2** (nonce/PKCE stubs, client hints, thin report md).
 
 ## What this package IS
 
@@ -13,24 +13,28 @@
   - Manifest dataclass: `id`, `class` (`pack_class`), `needs_roles`, `consumes`, `emits`, `noise_class`, `description`
   - Registry discovers packs under `packages/gungnir/src/gungnir/packs/`
   - CLI: `sentinel hunt pack list` · `sentinel hunt pack run <id> --program <id> --scope FILE|--i-own-this`
+  - CLI: `sentinel hunt report <program> [--pack PACK] [-o FILE]` — Steps from evidence only
   - **Fail closed** without Role A (and Role B when `needs_roles=2`)
   - Role sessions: lab JSON fixtures `roles/a.json` / `roles/b.json` — `{cookies|headers|bearer}` only; pack reads them, does not steal credentials
 
-### Pack `ato_oauth_oidc` v0 — can
+### Pack `ato_oauth_oidc` v0.2 — can
 
 - Map login/reset/OAuth/OIDC/SAML/magic-link **candidates** from Eye inventory URLs or `--url` (path/query heuristics)
 - Scope-gate via `scope.hard_kill` / `http_guard` before any request
 - Emit **candidates** for: missing state / missing PKCE hints / open `redirect_uri` patterns; token leakage patterns in Location/fragment/query (fixtures); password-reset enumeration diffs (fixture-driven, rate-aware messaging)
+- **Nonce / PKCE verify stubs** (fixture-driven): presence/format of `nonce`, `code_challenge`, `code_challenge_method`; `confirmed` only when fixture `expect` proves mismatch/absence; otherwise `unverified`
+- **Client-type hints** (public vs confidential) from discovery/HTML/JSON fixtures — low confidence labels
 - Attach finding-gate checklist: `in_scope`, `reproducible`, `impact`, `evidence_attached`
 - Use verification enum: `confirmed|not_reproduced|unverified|skipped` (plus existing bridge aliases)
+- Thin **report markdown export** (platform skeleton; Steps from evidence log only — no LLM)
 - Optional HTTP only through `scoped_request` (tests use mocks)
 
-### Pack `ato_oauth_oidc` v0 — cannot
+### Pack `ato_oauth_oidc` v0.2 — cannot
 
 - Full ATO chain automation
 - Live IdP attack / token-theft malware
 - BOLA / IDOR (separate pack, deferred)
-- Report factory / platform markdown export
+- LLM-invented Steps to Reproduce / full report factory / coach UI
 - nuclei-all / data destruction / lockout-abuse loops
 
 ## Role session fixture format
@@ -48,7 +52,7 @@ Place at `~/.sentinel/programs/<id>/roles/a.json` (and `b.json` when required).
 ## What this package is NOT (yet)
 
 - **Not** coach UI, Tauri, `--tools` engine downloads, Guard SDK
-- **Not** BOLA pack, desync, workflows, report factory
+- **Not** BOLA pack, desync, workflows, full report factory
 - **Not** feature parity with any live/public Gungnir product claims beyond this monorepo
 
 Prefer small honest code over a lying README.

@@ -1,4 +1,4 @@
-"""ATO / OAuth / OIDC hunt pack v0 — candidates + evidence stubs only."""
+"""ATO / OAuth / OIDC hunt pack — candidates + evidence stubs (Phase C slice2)."""
 
 from __future__ import annotations
 
@@ -16,11 +16,12 @@ MANIFEST = PackManifest(
     noise_class="med",
     description=(
         "Detect OAuth/OIDC/SAML/login/reset surface candidates and emit "
-        "defensive finding candidates (redirect_uri/state/PKCE, token leakage "
-        "patterns, password-reset enumeration). Lab fixtures + mocked HTTP only "
-        "in tests; optional scoped_request for authorized targets."
+        "defensive finding candidates (redirect_uri/state/PKCE/nonce stubs, "
+        "client-type hints, token leakage patterns, password-reset enumeration). "
+        "Lab fixtures + mocked HTTP only in tests; optional scoped_request for "
+        "authorized targets. Thin report md via `sentinel hunt report`."
     ),
-    version="0",
+    version="0.2",
 )
 
 

@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice1 shipped** — Hunt Pack framework + `ato_oauth_oidc` v0; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, BOLA pack, report factory, coach UI, Tauri, PyPI publish |
+| **Status** | **Phase C slice2 shipped** — `ato_oauth_oidc` v0.2 (nonce/PKCE stubs, client hints, thin report md); Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, BOLA pack, full report factory, coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -32,6 +32,7 @@ sentinel hunt run demo --title 'lab finding' --host example.com --i-own-this
 sentinel hunt pack list
 sentinel hunt pack run ato_oauth_oidc --program demo --i-own-this \
   --url 'https://lab.example/oauth/authorize?client_id=1&response_type=code&redirect_uri=https://lab.example/cb'
+sentinel hunt report demo --pack ato_oauth_oidc -o ./report.md
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
