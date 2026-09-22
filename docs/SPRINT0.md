@@ -7,7 +7,7 @@
 | Days 1–3 | `sentinel_core` scaffold + bridge stubs; workflows dropped from push (no `workflow` OAuth) | `d55a224` / `7aa4f69` (scaffold lineage; see `git log`) |
 | Days 3–5 | Scope briefs, HTTP hard-kill, engines detect, bridges, `import-brief` | `ad7f99d` → full: see log |
 | Days 6–10 | Engine allowlist download path, `eye`/`hunt` runners, honesty docs | `f596c5e8b137e830fa6574715e99859776c7aadb` |
-| Days 11–14 | Branding / residual honesty, Founder review packet, thin live README mirrors | *(this commit — fill after push)* |
+| Days 11–14 | Branding / residual honesty, Founder review packet, thin live README mirrors | `881a74ba85e5bd4ac4ab43daeb25914dbc43cded` |
 
 Exact short SHAs from `main` history:
 
