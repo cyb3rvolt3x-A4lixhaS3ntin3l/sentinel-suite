@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Sprint 0 Phase A complete** — schema, programs, scope MVP, doctor, allowlist engines, thin Eye/Hunt runners. Awaiting Founder review. |
-| **Not yet** | Full L0–L6 Eye, Hunt Packs UI, coach, Tauri, PyPI publish |
+| **Status** | **Phase B slice1 shipped** — Eye L0/L2/L5 lite + interestingness ranker + watch diffs; Phase A core intact. Next: deeper CT / L1 lite / engine hash pins. |
+| **Not yet** | Full L1/L3/L4, Hunt Packs UI, coach, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -32,6 +32,11 @@ sentinel hunt run demo --title 'lab finding' --host example.com --i-own-this
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
+
+Phase B Eye flags: `--json` (full ranked inventory) · `--watch` (persist diffs) · `--no-tools` (default; engines deferred until allowlist hashes).
+```bash
+sentinel eye run demo example.com --i-own-this --json --watch --no-tools
+```
 
 **Future pipx story (branding only; not published):**
 

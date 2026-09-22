@@ -152,37 +152,27 @@ def cmd_program_init(args: argparse.Namespace) -> int:
 
 
 def _update_program_yml(
-    yml_path: Path,
+    program_id: str,
     *,
     platform: str,
     allow_count: int,
     deny_count: int,
+    name: str | None = None,
 ) -> None:
-    """Patch or append platform + scope counts in program.yml (minimal YAML)."""
-    text = yml_path.read_text(encoding="utf-8") if yml_path.exists() else ""
-    lines = text.splitlines()
-    keys = {
-        "brief_platform": platform,
-        "scope_allow_count": str(allow_count),
-        "scope_deny_count": str(deny_count),
-    }
-    out: list[str] = []
-    seen: set[str] = set()
-    for line in lines:
-        stripped = line.strip()
-        replaced = False
-        for key, val in keys.items():
-            if stripped.startswith(f"{key}:"):
-                out.append(f"{key}: {val}")
-                seen.add(key)
-                replaced = True
-                break
-        if not replaced:
-            out.append(line)
-    for key, val in keys.items():
-        if key not in seen:
-            out.append(f"{key}: {val}")
-    yml_path.write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
+    """L0 Program brain: name, platform, allow/deny counts, updated_at, layers."""
+    from datetime import datetime, timezone
+
+    from sentinel_core import update_program_yml_fields
+
+    update_program_yml_fields(
+        program_id,
+        name=name or program_id,
+        platform=platform,
+        allow_count=allow_count,
+        deny_count=deny_count,
+        updated_at=datetime.now(timezone.utc).isoformat(),
+        layers_enabled=["L0"],
+    )
 
 
 def cmd_program_import_brief(args: argparse.Namespace) -> int:
@@ -214,10 +204,11 @@ def cmd_program_import_brief(args: argparse.Namespace) -> int:
     scope_file = root / "scope.txt"
     scope_file.write_text(scope_to_raw_text(scope), encoding="utf-8")
     _update_program_yml(
-        root / "program.yml",
+        args.program_id,
         platform=use_platform,
         allow_count=len(scope.allow),
         deny_count=len(scope.deny),
+        name=args.program_id,
     )
 
     with open_graph(args.program_id):
@@ -270,6 +261,10 @@ def cmd_eye_run(args: argparse.Namespace) -> int:
     if args.ports:
         ports = [int(x.strip()) for x in args.ports.split(",") if x.strip()]
 
+    no_tools = True if getattr(args, "no_tools", True) else False
+    if getattr(args, "tools", False):
+        no_tools = False
+
     result = run_eye(
         args.program_id,
         args.domains,
@@ -280,19 +275,54 @@ def cmd_eye_run(args: argparse.Namespace) -> int:
         resolve=not args.no_resolve,
         scan_ports=not args.no_ports,
         port_host_override=args.port_host,
+        no_tools=no_tools,
+        crtsh=not getattr(args, "no_crtsh", False),
+        http_probe=not getattr(args, "no_http", False),
+        watch=bool(getattr(args, "watch", False)),
+        rank=True,
     )
-    print(json.dumps(
-        {
+    inv = result["inventory"]
+    if getattr(args, "json_full", False):
+        payload = {
             "program_id": result["program_id"],
             "event_count": result["event_count"],
             "scoped": result["scoped"],
-            "domains": result["inventory"].get("domains"),
-            "dns_names": len(result["inventory"].get("dns_names") or []),
-            "ips": len(result["inventory"].get("ips") or []),
-            "ports": result["inventory"].get("ports"),
-        },
-        indent=2,
-    ))
+            "no_tools": result.get("no_tools", True),
+            "layers": result.get("layers"),
+            "inventory": {
+                "domains": inv.get("domains"),
+                "dns_names": inv.get("dns_names"),
+                "ips": inv.get("ips"),
+                "ports": inv.get("ports"),
+                "http": inv.get("http"),
+                "tech": inv.get("tech") or [],
+                "sources": inv.get("sources") or [],
+                "ranked": inv.get("ranked") or [],
+            },
+        }
+        if "watch" in result:
+            payload["watch"] = result["watch"]
+    else:
+        payload = {
+            "program_id": result["program_id"],
+            "event_count": result["event_count"],
+            "scoped": result["scoped"],
+            "domains": inv.get("domains"),
+            "dns_names": len(inv.get("dns_names") or []),
+            "ips": len(inv.get("ips") or []),
+            "ports": inv.get("ports"),
+            "http": len(inv.get("http") or []),
+            "sources": inv.get("sources") or [],
+            "ranked_top": (inv.get("ranked") or [])[:5],
+        }
+        if "watch" in result:
+            payload["watch"] = {
+                "first_run": result["watch"]["diffs"].get("first_run"),
+                "snapshot_ts": result["watch"].get("snapshot_ts"),
+                "dns_added": result["watch"]["diffs"]["dns_names"].get("added"),
+                "ports_added": result["watch"]["diffs"]["ports"].get("added"),
+            }
+    print(json.dumps(payload, indent=2))
     return 0
 
 
@@ -332,7 +362,7 @@ def cmd_hunt_run(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Sprint 0)",
+        description="Sentinel Suite CLI (Phase B slice1)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -360,7 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     imp.set_defaults(func=cmd_program_import_brief)
 
-    eye = sub.add_parser("eye", help="ShadowsEye thin inventory runner")
+    eye = sub.add_parser("eye", help="ShadowsEye L0/L2/L5 lite + watch/ranker")
     eye_sub = eye.add_subparsers(dest="eye_cmd", required=True)
     eye_run = eye_sub.add_parser(
         "run",
@@ -397,6 +427,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--port-host",
         default=None,
         help="Override host for port probes (e.g. 127.0.0.1 in tests)",
+    )
+    eye_run.add_argument(
+        "--json",
+        dest="json_full",
+        action="store_true",
+        help="Emit full inventory JSON sorted by interestingness",
+    )
+    eye_run.add_argument(
+        "--watch",
+        action="store_true",
+        help="Persist runs/latest.json and emit added/removed diffs",
+    )
+    eye_run.add_argument(
+        "--no-tools",
+        dest="no_tools",
+        action="store_true",
+        default=True,
+        help="Skip external engines (default True until allowlist hashes ready)",
+    )
+    eye_run.add_argument(
+        "--tools",
+        dest="tools",
+        action="store_true",
+        help="Opt-in external engines when allowlisted under SENTINEL_HOME/bin",
+    )
+    eye_run.add_argument(
+        "--no-crtsh",
+        action="store_true",
+        help="Skip crt.sh CT stub",
+    )
+    eye_run.add_argument(
+        "--no-http",
+        action="store_true",
+        help="Skip L5 HTTP probes",
     )
     eye_run.set_defaults(func=cmd_eye_run)
 

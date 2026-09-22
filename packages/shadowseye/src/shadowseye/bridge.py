@@ -108,6 +108,38 @@ def emit_open_port_event(
     return event
 
 
+
+
+def emit_url_event(
+    graph: EventGraph,
+    *,
+    program_id: str,
+    url: str,
+    status: int | None = None,
+    title: str | None = None,
+    parents: list[str] | None = None,
+    confidence: float = 0.75,
+    source_module: str = "shadowseye.bridge",
+    extra: dict[str, Any] | None = None,
+) -> Event:
+    """URL event from HTTP probe (L5 lite)."""
+    payload: dict[str, Any] = {"url": url, **(extra or {})}
+    if status is not None:
+        payload["status"] = int(status)
+    if title:
+        payload["title"] = title
+    event = Event(
+        type="URL",
+        source_module=source_module,
+        program_id=program_id,
+        parents=list(parents or []),
+        confidence=confidence,
+        payload=payload,
+    )
+    graph.insert(event)
+    return event
+
+
 def scoped_emit_domain(
     graph: EventGraph,
     scope: Scope,
@@ -222,6 +254,33 @@ def inventory_to_events(
             host=host,
             port=int(port),
             service=str(service) if service else None,
+            parents=parents,
+        )
+        events.append(ev)
+
+    for raw in inventory.get("http") or []:
+        if not isinstance(raw, dict):
+            continue
+        url = str(raw.get("url") or "")
+        if not url:
+            continue
+        status = raw.get("status")
+        title = raw.get("title")
+        # Parent: try host extracted from url against domain_ids
+        parents: list[str] = []
+        try:
+            from urllib.parse import urlparse
+
+            host = (urlparse(url).hostname or "").lower()
+            parents = _parent_for_host(host) if host else []
+        except Exception:
+            parents = []
+        ev = emit_url_event(
+            graph,
+            program_id=program_id,
+            url=url,
+            status=int(status) if status is not None else None,
+            title=str(title) if title else None,
             parents=parents,
         )
         events.append(ev)

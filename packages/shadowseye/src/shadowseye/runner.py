@@ -1,10 +1,10 @@
-"""Thin ShadowsEye runner — stdlib inventory → inventory_to_events → program graph."""
+"""ShadowsEye runner — L0/L2/L5 lite inventory → events + optional watch diffs."""
 
 from __future__ import annotations
 
 import socket
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from sentinel_core import (
     Scope,
@@ -15,10 +15,18 @@ from sentinel_core import (
     program_dir,
 )
 from shadowseye.bridge import inventory_to_events
+from shadowseye.inventory import merge_sources, normalize_inventory
+from shadowseye.live_map import probe_http_inventory
+from shadowseye.passive import merge_crtsh_into_inventory
+from shadowseye.ranker import rank_inventory, sort_dns_names_by_rank
+from shadowseye.watch import watch_compare_and_persist
 
 # Tiny default wordlist for lab/tests — not a real recon dictionary.
 DEFAULT_SUBDOMAIN_WORDS: tuple[str, ...] = ("www", "api", "mail")
 DEFAULT_PORTS: tuple[int, ...] = (80, 443)
+
+# Layers enabled by this Phase B slice (honest labels for program.yml).
+PHASE_B_SLICE1_LAYERS: tuple[str, ...] = ("L0", "L2", "L5", "L6", "ranker")
 
 
 def require_scope_or_lab(
@@ -83,12 +91,14 @@ def gather_inventory(
     words = list(wordlist) if wordlist is not None else list(DEFAULT_SUBDOMAIN_WORDS)
     port_list = list(ports) if ports is not None else list(DEFAULT_PORTS)
 
-    inventory: dict[str, Any] = {
-        "domains": [],
-        "dns_names": [],
-        "ips": [],
-        "ports": [],
-    }
+    inventory: dict[str, Any] = normalize_inventory(
+        {
+            "domains": [],
+            "dns_names": [],
+            "ips": [],
+            "ports": [],
+        }
+    )
     seen_domains: set[str] = set()
     seen_dns: set[str] = set()
     seen_ips: set[str] = set()
@@ -102,7 +112,9 @@ def gather_inventory(
 
         if apex not in seen_dns:
             seen_dns.add(apex)
-            inventory["dns_names"].append({"name": apex, "parent": apex})
+            inventory["dns_names"].append(
+                {"name": apex, "parent": apex, "source": "native"}
+            )
 
         if resolve:
             ip = resolve_host(apex)
@@ -122,13 +134,17 @@ def gather_inventory(
                 if ip is None:
                     continue
                 seen_dns.add(fqdn)
-                inventory["dns_names"].append({"name": fqdn, "parent": apex})
+                inventory["dns_names"].append(
+                    {"name": fqdn, "parent": apex, "source": "native"}
+                )
                 if ip not in seen_ips:
                     seen_ips.add(ip)
                     inventory["ips"].append({"ip": ip, "host": fqdn})
             else:
                 seen_dns.add(fqdn)
-                inventory["dns_names"].append({"name": fqdn, "parent": apex})
+                inventory["dns_names"].append(
+                    {"name": fqdn, "parent": apex, "source": "native"}
+                )
 
         if scan_ports and port_list:
             probe_target = port_host_override or apex
@@ -141,7 +157,7 @@ def gather_inventory(
                 if probe_port(probe_target, int(port)):
                     inventory["ports"].append({"host": apex, "port": int(port)})
 
-    return inventory
+    return merge_sources(inventory, "native")
 
 
 def load_wordlist(path: str | Path | None) -> list[str]:
@@ -157,6 +173,23 @@ def load_wordlist(path: str | Path | None) -> list[str]:
     return words or list(DEFAULT_SUBDOMAIN_WORDS)
 
 
+def touch_program_yml_layers(
+    program_id: str,
+    *,
+    layers: Sequence[str] | None = None,
+) -> None:
+    """Ensure program.yml lists Phase B layers + updated_at (L0 brain)."""
+    from datetime import datetime, timezone
+
+    from sentinel_core.programs import update_program_yml_fields
+
+    update_program_yml_fields(
+        program_id,
+        layers_enabled=list(layers or PHASE_B_SLICE1_LAYERS),
+        updated_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
 def run_eye(
     program_id: str,
     domains: Sequence[str],
@@ -169,11 +202,24 @@ def run_eye(
     scan_ports: bool = True,
     port_host_override: str | None = None,
     create_if_missing: bool = True,
+    no_tools: bool = True,
+    crtsh: bool = True,
+    crtsh_fetcher: Callable[[str, float], bytes] | None = None,
+    crtsh_network: bool = False,
+    http_probe: bool = True,
+    http_opener: Callable[[str, float], tuple[int, bytes, str]] | None = None,
+    watch: bool = False,
+    rank: bool = True,
 ) -> dict[str, Any]:
     """
     Require scope file OR --i-own-this, gather inventory, emit into program graph.
 
-    When a Scope is loaded, each inventory domain is hard_kill'd before emit.
+    Phase B slice1:
+    - L2: native wordlist + optional crt.sh stub (mocked via crtsh_fetcher)
+    - L5: bounded ports (existing) + http probe (stdlib; injectable opener)
+    - ranker: interestingness sort into inventory['ranked']
+    - L6: ``watch=True`` persists runs/latest.json and returns diffs
+    - ``no_tools=True`` (default): skip external engines (allowlist empty OK)
     """
     # Resolve scope path: explicit flag, else program scope.txt if it has allows
     effective_scope_path: Path | None = Path(scope_path) if scope_path else None
@@ -204,10 +250,40 @@ def run_eye(
         port_host_override=port_host_override,
     )
 
+    # L2 CT stub — always available via injectable fetcher; live net opt-in
+    if crtsh:
+        inventory = merge_crtsh_into_inventory(
+            inventory,
+            domains,
+            fetcher=crtsh_fetcher,
+            network=crtsh_network and crtsh_fetcher is None,
+        )
+
+    # no_tools: engines deferred (empty allowlist). Flag retained for honesty.
+    _ = no_tools  # tools path not implemented until hashes pinned
+
+    # L5 http probe lite
+    if http_probe and (inventory.get("ports") or []):
+        http_rows = probe_http_inventory(
+            inventory,
+            scope=scope,
+            opener=http_opener,
+        )
+        inventory["http"] = http_rows
+        inventory.setdefault("tech", [])
+
+    inventory = normalize_inventory(inventory)
+
     # hard_kill before any graph write when scope is active
     if scope is not None:
         for dom in inventory.get("domains") or []:
             scope.hard_kill(dom)
+
+    # Interestingness ranker (default sort for --json)
+    if rank:
+        ranked = rank_inventory(inventory)
+        inventory["ranked"] = ranked
+        inventory["dns_names"] = sort_dns_names_by_rank(inventory, ranked)
 
     events_out: list[dict[str, Any]] = []
     with open_graph(program_id) as graph:
@@ -217,11 +293,28 @@ def run_eye(
                 {"id": ev.id, "type": ev.type, "payload": dict(ev.payload)}
             )
 
-    return {
+    # L0: touch program.yml layers / updated_at
+    try:
+        touch_program_yml_layers(program_id)
+    except OSError:
+        pass
+
+    watch_result: dict[str, Any] | None = None
+    if watch:
+        watch_result = watch_compare_and_persist(
+            program_dir(program_id), inventory
+        )
+
+    out: dict[str, Any] = {
         "program_id": program_id,
         "inventory": inventory,
         "events": events_out,
         "event_count": len(events_out),
         "scoped": scope is not None,
         "i_own_this": bool(i_own_this),
+        "no_tools": bool(no_tools),
+        "layers": list(PHASE_B_SLICE1_LAYERS),
     }
+    if watch_result is not None:
+        out["watch"] = watch_result
+    return out

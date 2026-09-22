@@ -33,6 +33,7 @@ from sentinel_core.programs import (
     get_sentinel_home,
     open_graph,
     program_dir,
+    update_program_yml_fields,
 )
 from sentinel_core.scope import (
     Scope,
@@ -80,6 +81,7 @@ __all__ = [
     "pin_engine",
     "prepare_scoped_request",
     "program_dir",
+    "update_program_yml_fields",
     "scope_to_raw_text",
     "scoped_request",
     "stamp_run",

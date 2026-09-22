@@ -1,4 +1,4 @@
-# HUMAN-QUEUE — Sprint 0 Phase A
+# HUMAN-QUEUE — Sprint 0 Phase A + Phase B slice1
 
 Items that need a human (OAuth scope, Founder decision, or later work). Not blockers for local use of this scaffold.
 
@@ -19,24 +19,30 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 ## Open Founder decisions
 
 2. **License re-eval** — Founder Apache-2.0 preference vs MIT consistency (see `docs/LICENSE_NOTE.md`).
-3. **Engine binary allowlist hashes** — download path implemented; `ENGINE_ALLOWLIST` empty until a human pins third-party release hashes. Deferred catalog: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`.
-4. **Phase B GO** — first slice of ShadowsEye that pays (L0–L5 + watch diffs + interestingness)?
+3. **Engine binary allowlist hashes** — download path implemented; `ENGINE_ALLOWLIST` empty until a human pins third-party release hashes. Deferred catalog: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`. Empty allowlist ⇒ Eye `--no-tools` default (native + crt.sh stub only).
+4. ~~**Phase B GO**~~ — **slice1 shipped** (L0 program.yml brain, L2 native+crt.sh stub, L5 http probe lite, interestingness ranker, L6 watch diffs MVP).
 5. **Money pack later** — which pack after Eye pays (BOLA/IDOR vs ATO/OAuth)?
+6. **Next Phase B slice** — L1 identity lite (RDAP/ASN/MX stubs)? deeper CT + reverse-IP with scope-distance? httpx allowlist pin when hashes ready?
 
-## Deferred (not Sprint 0)
+## Deferred (not this ship)
 
-6. **PyPI publish** — install via editable clone until then.
-7. **Guard SDK** — never touch; separate product.
-8. **Tauri / L1–L6 full / Hunt Packs UI / coach / X promo** — later phases.
+7. **PyPI publish** — install via editable clone until then.
+8. **Guard SDK** — never touch; separate product.
+9. **Tauri / full L1–L6 / Hunt Packs UI / coach / X promo** — later phases.
+10. **External engine tools in Eye** — subfinder/dnsx/httpx deferred until hashes pinned.
 
-## Days 11–14 landed (this ship)
+## Phase B slice1 landed (this ship)
+
+- L0: `program.yml` fields `name`, `platform`, `allow_count`, `deny_count`, `updated_at`, `layers_enabled`
+- L2: native wordlist resolve + injectable `crtsh_query` (honest degrade); tools deferred
+- L5: ports (existing) + stdlib HTTP probe via `http_guard`; `http[]` + empty `tech[]`
+- Ranker: `interestingness` scores; default sort in `--json`
+- L6: `runs/latest.json` + history; `--watch` diffs (added/removed dns/ports/http)
+- CLI: `sentinel eye run … --json --watch --no-tools` (default no-tools true)
+
+## Days 11–14 (prior)
 
 - Branding / residual honesty on suite README + package READMEs
 - Founder review packet (box deliverables + optional `docs/SPRINT0_REVIEW.md`)
 - Thin README mirrors on live `gungnir` + `ShadowsEye` (pointer to monorepo; no code moves/deletes)
 - Still **no** `.github/workflows` push
-
-## Days 6–10 (prior)
-
-- Engines allowlist download path + doctor status; `docs/ENGINES.md`
-- Eye / Hunt thin runners + honesty docs
