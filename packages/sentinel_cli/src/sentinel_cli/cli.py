@@ -278,6 +278,10 @@ def cmd_eye_run(args: argparse.Namespace) -> int:
         no_tools=no_tools,
         crtsh=not getattr(args, "no_crtsh", False),
         http_probe=not getattr(args, "no_http", False),
+        fingerprint=(
+            not getattr(args, "no_http", False)
+            and not getattr(args, "no_fingerprint", False)
+        ),
         watch=bool(getattr(args, "watch", False)),
         rank=True,
         identity=not getattr(args, "no_identity", False),
@@ -368,7 +372,7 @@ def cmd_hunt_run(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase B slice2)",
+        description="Sentinel Suite CLI (Phase B slice3)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -396,7 +400,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     imp.set_defaults(func=cmd_program_import_brief)
 
-    eye = sub.add_parser("eye", help="ShadowsEye L0/L1/L2/L5 lite + watch/ranker")
+    eye = sub.add_parser("eye", help="ShadowsEye L0/L1/L2/L5 + fingerprint/watch/ranker")
     eye_sub = eye.add_subparsers(dest="eye_cmd", required=True)
     eye_run = eye_sub.add_parser(
         "run",
@@ -466,7 +470,18 @@ def build_parser() -> argparse.ArgumentParser:
     eye_run.add_argument(
         "--no-http",
         action="store_true",
-        help="Skip L5 HTTP probes",
+        help="Skip L5 HTTP probes (also skips tech fingerprint)",
+    )
+    eye_run.add_argument(
+        "--no-fingerprint",
+        action="store_true",
+        help="Skip L5 tech fingerprint heuristics (default on when HTTP runs)",
+    )
+    eye_run.add_argument(
+        "--fingerprint",
+        dest="fingerprint_explicit",
+        action="store_true",
+        help="Explicitly enable tech fingerprint (default when HTTP is on)",
     )
 
     eye_run.add_argument(

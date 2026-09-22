@@ -170,6 +170,55 @@ def score_asset(asset: dict[str, Any], *, now: datetime | None = None) -> tuple[
     )
 
 
+
+def _tech_boost_for_host(
+    host: str,
+    tech_rows: Sequence[dict[str, Any]] | None,
+) -> tuple[float, list[str]]:
+    """Boost score when rare/admin tech is linked to this host via url."""
+    if not tech_rows:
+        return 0.0, []
+    from urllib.parse import urlparse
+
+    from shadowseye.tech_fingerprint import RARE_ADMIN_TECH
+
+    host_l = (host or "").strip().lower().rstrip(".")
+    if not host_l:
+        return 0.0, []
+    boost = 0.0
+    reasons: list[str] = []
+    seen: set[str] = set()
+    for row in tech_rows:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name") or "").strip().lower()
+        if not name or name in seen:
+            continue
+        url = str(row.get("url") or "")
+        linked = False
+        if url:
+            try:
+                uh = (urlparse(url).hostname or "").lower().rstrip(".")
+            except Exception:  # noqa: BLE001
+                uh = ""
+            if uh == host_l or (uh and (uh.endswith("." + host_l) or host_l.endswith("." + uh))):
+                linked = True
+        else:
+            # No url: apply mild global boost only for rare tech once per inventory key pass
+            linked = name in RARE_ADMIN_TECH
+        if not linked:
+            continue
+        seen.add(name)
+        if name in RARE_ADMIN_TECH:
+            boost += 15.0
+            reasons.append("tech:" + name)
+        else:
+            boost += 4.0
+            reasons.append("tech_other:" + name)
+    return boost, reasons
+
+
+
 def rank_inventory(
     inventory: dict[str, Any],
     *,
@@ -207,6 +256,8 @@ def rank_inventory(
         if isinstance(r, dict) and str(r.get("kind") or "").lower() == "mx"
     }
 
+    tech_rows = [r for r in (inventory.get("tech") or []) if isinstance(r, dict)]
+
     ranked: list[dict[str, Any]] = []
     for key in keys:
         fs = first_seen_map.get(key)
@@ -216,6 +267,10 @@ def rank_inventory(
         ):
             score -= 3.0
             reasons = list(reasons) + ["identity_mx_only"]
+        t_boost, t_reasons = _tech_boost_for_host(key, tech_rows)
+        if t_boost:
+            score += t_boost
+            reasons = list(reasons) + t_reasons
         ranked.append({"key": key, "score": round(score, 2), "reasons": reasons})
 
     ranked.sort(key=lambda r: (-float(r["score"]), r["key"]))

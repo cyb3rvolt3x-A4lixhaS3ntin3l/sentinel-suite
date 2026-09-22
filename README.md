@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase B slice2 shipped** — Eye L0/L1/L2/L5 lite + reverse-IP scope-distance + ranker/watch; Phase A core intact. Next: engine hash pins / `--tools` wire. |
+| **Status** | **Phase B slice3 shipped** — Eye L0/L1/L2/L5 + tech fingerprint heuristics + ranker/watch; Phase A core intact. Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, Hunt Packs UI, coach, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -33,7 +33,7 @@ sentinel hunt run demo --title 'lab finding' --host example.com --i-own-this
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
 
-Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N`.
+Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N` · `--no-fingerprint` · `--no-http`.
 ```bash
 sentinel eye run demo example.com --i-own-this --json --watch --no-tools
 ```
@@ -90,6 +90,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/SPRINT0.md`](docs/SPRINT0.md) | Phase A milestones + SHAs |
 | [`docs/SPRINT0_REVIEW.md`](docs/SPRINT0_REVIEW.md) | Short Founder review pointer |
 | [`docs/PHASE_B_SLICE2.md`](docs/PHASE_B_SLICE2.md) | Slice2 reality table |
+| [`docs/PHASE_B_SLICE3.md`](docs/PHASE_B_SLICE3.md) | Slice3 L5 tech fingerprint |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
 ## Layout

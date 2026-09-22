@@ -17,6 +17,7 @@ from sentinel_core import (
 from shadowseye.bridge import inventory_to_events
 from shadowseye.inventory import merge_sources, normalize_inventory
 from shadowseye.live_map import probe_http_inventory
+from shadowseye.tech_fingerprint import merge_tech_into_inventory
 from shadowseye.identity import merge_identity_into_inventory
 from shadowseye.passive import merge_crtsh_into_inventory, merge_reverse_ip_into_inventory
 from shadowseye.ranker import rank_inventory, sort_dns_names_by_rank
@@ -29,6 +30,8 @@ DEFAULT_PORTS: tuple[int, ...] = (80, 443)
 # Layers enabled by this Phase B slice (honest labels for program.yml).
 PHASE_B_SLICE1_LAYERS: tuple[str, ...] = ("L0", "L1", "L2", "L5", "L6", "ranker")
 PHASE_B_SLICE2_LAYERS = PHASE_B_SLICE1_LAYERS  # alias after slice2 landing
+PHASE_B_SLICE3_LAYERS: tuple[str, ...] = ("L0", "L1", "L2", "L5", "L6", "ranker")
+
 
 
 def require_scope_or_lab(
@@ -187,7 +190,7 @@ def touch_program_yml_layers(
 
     update_program_yml_fields(
         program_id,
-        layers_enabled=list(layers or PHASE_B_SLICE2_LAYERS),
+        layers_enabled=list(layers or PHASE_B_SLICE3_LAYERS),
         updated_at=datetime.now(timezone.utc).isoformat(),
     )
 
@@ -210,6 +213,7 @@ def run_eye(
     crtsh_network: bool = False,
     http_probe: bool = True,
     http_opener: Callable[[str, float], tuple[int, bytes, str]] | None = None,
+    fingerprint: bool = True,
     watch: bool = False,
     rank: bool = True,
     identity: bool = True,
@@ -226,13 +230,13 @@ def run_eye(
     """
     Require scope file OR --i-own-this, gather inventory, emit into program graph.
 
-    Phase B slice2:
+    Phase B slice3:
     - L1: identity lite (RDAP/ASN/MX/SPF) low-confidence; ``--no-identity`` to skip
     - L2: native wordlist + hardened crt.sh + reverse-IP neighbours (scope-distance cap)
-    - L5: bounded ports + http probe (stdlib; injectable opener)
-    - ranker: interestingness sort into inventory['ranked']
+    - L5: bounded ports + http probe + tech fingerprint heuristics (``--no-fingerprint``)
+    - ranker: interestingness sort + rare/admin tech boosts
     - L6: ``watch=True`` persists runs/latest.json and returns diffs
-    - ``no_tools=True`` (default): skip external engines (allowlist empty OK)
+    - ``no_tools=True`` (default): skip external engines (allowlist empty; hashes HOLD)
     """
     # Resolve scope path: explicit flag, else program scope.txt if it has allows
     effective_scope_path: Path | None = Path(scope_path) if scope_path else None
@@ -297,7 +301,7 @@ def run_eye(
     # no_tools: engines deferred (empty allowlist). Flag retained for honesty.
     _ = no_tools  # tools path not implemented until hashes pinned
 
-    # L5 http probe lite
+    # L5 http probe lite + optional tech fingerprint (stdlib heuristics)
     if http_probe and (inventory.get("ports") or []):
         http_rows = probe_http_inventory(
             inventory,
@@ -305,6 +309,11 @@ def run_eye(
             opener=http_opener,
         )
         inventory["http"] = http_rows
+        if fingerprint:
+            inventory = merge_tech_into_inventory(inventory, http_rows)
+        else:
+            inventory.setdefault("tech", [])
+    else:
         inventory.setdefault("tech", [])
 
     inventory = normalize_inventory(inventory)
@@ -348,7 +357,7 @@ def run_eye(
         "scoped": scope is not None,
         "i_own_this": bool(i_own_this),
         "no_tools": bool(no_tools),
-        "layers": list(PHASE_B_SLICE2_LAYERS),
+        "layers": list(PHASE_B_SLICE3_LAYERS),
     }
     if watch_result is not None:
         out["watch"] = watch_result

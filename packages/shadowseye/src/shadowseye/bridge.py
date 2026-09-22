@@ -195,6 +195,40 @@ def emit_identity_event(
     graph.insert(event)
     return event
 
+
+def emit_tech_event(
+    graph: EventGraph,
+    *,
+    program_id: str,
+    name: str,
+    confidence: float = 0.45,
+    evidence: str | None = None,
+    source: str | None = None,
+    url: str | None = None,
+    parents: list[str] | None = None,
+    source_module: str = "shadowseye.tech_fingerprint",
+    extra: dict[str, Any] | None = None,
+) -> Event:
+    """TECH event from L5 fingerprint heuristics (low–med confidence)."""
+    payload: dict[str, Any] = {"name": name, **(extra or {})}
+    if evidence:
+        payload["evidence"] = evidence
+    if source:
+        payload["source"] = source
+    if url:
+        payload["url"] = url
+    event = Event(
+        type="TECH",
+        source_module=source_module,
+        program_id=program_id,
+        parents=list(parents or []),
+        confidence=float(confidence),
+        payload=payload,
+    )
+    graph.insert(event)
+    return event
+
+
 def inventory_to_events(
     graph: EventGraph,
     program_id: str,
@@ -351,5 +385,38 @@ def inventory_to_events(
             extra=extra,
         )
         events.append(ev)
+
+
+    for raw in inventory.get("tech") or []:
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("name") or "").strip()
+        if not name:
+            continue
+        conf = float(raw.get("confidence") or 0.45)
+        evidence = raw.get("evidence")
+        src = raw.get("source")
+        url = raw.get("url")
+        parents: list[str] = []
+        if url:
+            try:
+                from urllib.parse import urlparse
+
+                host = (urlparse(str(url)).hostname or "").lower()
+                parents = _parent_for_host(host) if host else []
+            except Exception:
+                parents = []
+        ev = emit_tech_event(
+            graph,
+            program_id=program_id,
+            name=name,
+            confidence=conf,
+            evidence=str(evidence) if evidence else None,
+            source=str(src) if src else None,
+            url=str(url) if url else None,
+            parents=parents,
+        )
+        events.append(ev)
+
 
     return events
