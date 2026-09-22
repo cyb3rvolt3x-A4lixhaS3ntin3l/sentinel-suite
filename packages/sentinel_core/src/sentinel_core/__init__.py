@@ -1,9 +1,20 @@
 """sentinel_core — shared event graph, scope kernel, engine pin for Sentinel Suite."""
 
+from sentinel_core.engine_allowlist import (
+    COMMON_DETECT,
+    DEFERRED_ENGINES,
+    ENGINE_ALLOWLIST,
+    describe_allowlist,
+    is_allowlisted,
+    is_deferred,
+)
 from sentinel_core.engines import (
     bin_dir,
     detect_engine,
+    download_allowlisted_engine,
     ensure_engine,
+    engine_catalog_summary,
+    list_engine_status,
     list_pinned,
     pin_engine,
     stamp_run,
@@ -37,6 +48,9 @@ from sentinel_core.scope import (
 __version__ = "0.1.0"
 
 __all__ = [
+    "COMMON_DETECT",
+    "DEFERRED_ENGINES",
+    "ENGINE_ALLOWLIST",
     "EVENT_TYPES",
     "Event",
     "EventGraph",
@@ -46,11 +60,17 @@ __all__ = [
     "assert_url_in_scope",
     "bin_dir",
     "create_program",
+    "describe_allowlist",
     "detect_brief_platform",
     "detect_engine",
+    "download_allowlisted_engine",
     "ensure_engine",
+    "engine_catalog_summary",
     "get_sentinel_home",
     "host_from_url",
+    "is_allowlisted",
+    "is_deferred",
+    "list_engine_status",
     "list_pinned",
     "load_scope_file",
     "load_scope_text",

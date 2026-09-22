@@ -5,10 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sentinel-cli"
 version = "0.1.0"
-description = "Sentinel Suite CLI (doctor, program init stubs)"
+description = "Sentinel Suite CLI (doctor, program, eye, hunt)"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-dependencies = ["sentinel_core>=0.1.0"]
+dependencies = [
+  "sentinel_core>=0.1.0",
+  "shadowseye>=0.1.0",
+  "gungnir>=0.1.0",
+]
 
 [project.scripts]
 sentinel = "sentinel_cli.cli:main"

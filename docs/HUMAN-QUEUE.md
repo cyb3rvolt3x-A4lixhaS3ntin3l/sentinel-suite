@@ -31,17 +31,18 @@ Items that need a human (OAuth scope, Founder decision, or later day work). Not 
 3. **License re-eval** — Founder Apache-2.0 preference vs MIT consistency (see `docs/LICENSE_NOTE.md`).
 4. **PyPI publish** — not in Sprint 0; install via editable clone until then.
 5. **Guard SDK** — never touch; separate product.
-6. **Engine binary download** — Sprint 0 `ensure_engine(..., download=True)` returns `download_deferred` (detect+stamp only; no arbitrary internet fetches). Human/day 6–7 may wire a vetted allowlist download path.
+6. **Engine binary allowlist hashes** — download path is implemented (allowlist-only, sha256, `SENTINEL_HOME/bin` only, no PATH mutation). `ENGINE_ALLOWLIST` is **empty** until a human pins real third-party release hashes. Deferred catalog: subfinder, httpx, naabu, nuclei, dnsx, katana, ffuf — see `docs/ENGINES.md`.
 
-## Days 3–5 landed (this ship)
+## Days 6–10 landed (this ship)
 
-- Scope kernel: `parse_brief` (h1 / bugcrowd / generic / raw), `detect_brief_platform`, HTTP hard-kill via `http_guard` (`assert_url_in_scope` / `scoped_request`).
-- Engine pin: `detect_engine`, `ensure_engine` (download deferred); doctor lists pinned vs detected.
-- Eye/Hunt bridges: DNS_NAME / IP / OPEN_PORT / inventory_to_events; EVIDENCE / emit_verified_finding / scoped emit.
-- CLI: `sentinel program import-brief <id> <file> [--platform auto|h1|bugcrowd|raw]`.
+- Engines: allowlist download path + doctor status (detected / pinned / allowlisted / deferred); `docs/ENGINES.md`.
+- Eye: thin `shadowseye.runner` + `sentinel eye run` (stdlib inventory → graph; `--scope` or `--i-own-this`).
+- Hunt: thin `gungnir.runner` + `sentinel hunt run` + thin `correlate_findings` (dedupe; no 26-chain theater).
+- Honesty: `packages/gungnir/README.md` states bridge + thin runner + thin correlate only.
 
-## Days 6–10 leftovers
+## Days 11–14 plan (not this ship)
 
-- Deeper live module wiring (call inventory emitters from a thin Eye runner; hunt pack → verified finding path).
-- Optional vetted engine download allowlist (still no PATH mutation).
-- CI workflow push once `workflow` OAuth scope is available.
+- Residual gungnir honesty / branding pass if needed
+- Founder review packet
+- Mirror README on live Eye/Hunt repos (human; do not modify those repos from agents without explicit GO)
+- CI workflow push once `workflow` OAuth scope is available

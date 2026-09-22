@@ -2,7 +2,7 @@
 
 **Authorized attack-surface OSINT that watches (ShadowsEye) + hunt packs that prove (Gungnir) on a shared event graph and scope kernel (`sentinel_core`).**
 
-Sprint 0 Phase A scaffold — schema, program folders, scope MVP, doctor CLI, thin bridge stubs. Not a full Eye/Hunt product yet.
+Sprint 0 Phase A — schema, program folders, scope MVP, doctor CLI, allowlist engines, thin Eye/Hunt runners. Not a full Eye/Hunt product yet.
 
 ## Install (PyPI not published yet)
 
@@ -21,14 +21,18 @@ pytest -q
 sentinel doctor
 sentinel program init demo
 sentinel program import-brief demo ./brief.txt --platform auto
+sentinel eye run demo example.com --i-own-this --no-ports
+sentinel hunt run demo --title 'lab finding' --host example.com --i-own-this
 ```
 
-### Scope / HTTP guard / engines (days 3–5)
+### Scope / HTTP guard / engines / runners (days 3–10)
 
 - **Briefs:** `parse_brief(text, platform="auto|h1|bugcrowd|generic|raw")` + `detect_brief_platform`.
 - **HTTP hard-kill:** `assert_url_in_scope(scope, url)` / `scoped_request(...)` — host checked via `scope.hard_kill` before any network.
-- **Engines:** `detect_engine(name)`, `ensure_engine(..., download=False)` — download is **deferred** (detect+stamp only; honesty over fake fetch).
+- **Engines:** `detect_engine`, `ensure_engine(..., download=True)` — **allowlist-only** download under `SENTINEL_HOME/bin/` (sha256 verify; never mutates PATH). Allowlist starts empty; deferred engines listed in [`docs/ENGINES.md`](docs/ENGINES.md).
 - **Bridges:** ShadowsEye emits DOMAIN/DNS_NAME/IP/OPEN_PORT + `inventory_to_events`; Gungnir emits FINDING/EVIDENCE + `emit_verified_finding`.
+- **Eye runner:** `sentinel eye run <program> <domains...> --scope FILE|--i-own-this`
+- **Hunt runner:** `sentinel hunt run <program> --title "..." --scope FILE|--i-own-this` (thin correlate optional)
 
 **Future pipx story (branding from day one; not published yet):**
 
@@ -63,9 +67,10 @@ pipx install sentinel-suite      # both + `sentinel` CLI
 
 ```text
 packages/sentinel_core   # real library (schema, graph, scope, engines)
-packages/shadowseye      # Eye inventory event emitters
-packages/gungnir         # Hunt finding/evidence + scope/lab gate
-packages/sentinel_cli    # `sentinel` → doctor, program init/import-brief
+packages/shadowseye      # Eye bridge + thin runner (inventory → graph)
+packages/gungnir         # Hunt bridge + thin runner + thin correlate
+packages/sentinel_cli    # `sentinel` → doctor, program, eye, hunt
+docs/ENGINES.md          # allowlist vs deferred engines
 workers/                 # Go later (README only)
 tests/                   # suite tests
 docs/HUMAN-QUEUE.md      # CI OAuth / mirror / license follow-ups

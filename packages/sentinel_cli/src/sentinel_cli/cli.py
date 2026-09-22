@@ -1,8 +1,9 @@
-"""sentinel CLI — doctor + program init/import-brief (Sprint 0)."""
+"""sentinel CLI — doctor, program, eye run, hunt run (Sprint 0)."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import traceback
@@ -13,13 +14,19 @@ def cmd_doctor(_: argparse.Namespace) -> int:
     lines: list[str] = []
     ok = True
 
-    # Python
     lines.append(f"python: {sys.version.split()[0]} ({sys.executable})")
 
-    # sentinel_core import
     try:
         import sentinel_core
-        from sentinel_core import Event, bin_dir, detect_engine, get_sentinel_home, list_pinned
+        from sentinel_core import (
+            DEFERRED_ENGINES,
+            Event,
+            bin_dir,
+            engine_catalog_summary,
+            get_sentinel_home,
+            list_engine_status,
+            list_pinned,
+        )
 
         lines.append(f"sentinel_core: import OK (v{sentinel_core.__version__})")
     except Exception as exc:  # noqa: BLE001
@@ -31,7 +38,6 @@ def cmd_doctor(_: argparse.Namespace) -> int:
     home = get_sentinel_home()
     lines.append(f"SENTINEL_HOME: {home}")
 
-    # writable home
     try:
         home.mkdir(parents=True, exist_ok=True)
         probe = home / ".doctor_write_probe"
@@ -42,48 +48,93 @@ def cmd_doctor(_: argparse.Namespace) -> int:
         ok = False
         lines.append(f"SENTINEL_HOME writable: no ({exc})")
 
-    # bin dir
     try:
         b = bin_dir(home)
-        entries = [p.name for p in b.iterdir() if p.is_file() and p.name != "stamps.json"]
-        if not entries and not list_pinned(home):
-            lines.append(f"bin dir: {b} (ok, empty — no pinned engines yet)")
-        else:
-            lines.append(f"bin dir: {b} (ok)")
+        lines.append(f"bin dir: {b} (ok)")
     except OSError as exc:
         ok = False
         lines.append(f"bin dir: FAIL ({exc})")
 
-    # Engine pin vs detect
+    # Engine status: pinned / detected / allowlisted / deferred
     pinned = list_pinned(home)
+    rows = list_engine_status(home)
+    detected_rows = [r for r in rows if r["detected"]]
+    pinned_rows = [r for r in rows if r["pinned"]]
+    allowlisted_rows = [r for r in rows if r["allowlisted"]]
+    deferred_not_pinned = [
+        r for r in rows if r["deferred"] and not r["pinned"] and not r["detected"]
+    ]
+
     if not pinned:
-        lines.append("engines pinned: (none — pin dir empty / no stamps.json entries)")
+        lines.append("engines pinned: (none)")
     else:
         lines.append(f"engines pinned: {', '.join(sorted(pinned))}")
         for name, meta in sorted(pinned.items()):
-            det = detect_engine(name, home=home)
-            if det:
+            lines.append(f"  - {name}: version={meta.get('version')} path={meta.get('path')}")
+
+    if detected_rows:
+        lines.append("engines detected (PATH/bin):")
+        for r in detected_rows:
+            lines.append(
+                f"  - {r['name']}: version={r.get('detected_version') or '?'} "
+                f"@ {r.get('detected_path')}"
+            )
+    else:
+        lines.append("engines detected: (none of common/deferred/pinned found)")
+
+    if allowlisted_rows:
+        lines.append(
+            "engines allowlisted (downloadable): "
+            + ", ".join(r["name"] for r in allowlisted_rows)
+        )
+        for r in allowlisted_rows:
+            if not r["pinned"]:
                 lines.append(
-                    f"  - {name}: pinned={meta.get('version')} "
-                    f"detected={det.get('version') or '?'} @ {det.get('path')}"
+                    f"  - {r['name']}: allowlisted but not pinned "
+                    "(ensure_engine(..., download=True) can fetch)"
                 )
-            else:
-                lines.append(
-                    f"  - {name}: pinned={meta.get('version')} "
-                    f"detected=(missing on PATH/bin)"
-                )
+    else:
+        lines.append(
+            "engines allowlisted: (empty — no vetted hashes yet; see docs/ENGINES.md)"
+        )
+
+    if deferred_not_pinned:
+        names = ", ".join(r["name"] for r in deferred_not_pinned[:12])
+        more = (
+            f" (+{len(deferred_not_pinned) - 12} more)"
+            if len(deferred_not_pinned) > 12
+            else ""
+        )
+        lines.append(f"engines deferred (not hashed): {names}{more}")
+    else:
+        lines.append(
+            f"engines deferred catalog: {', '.join(DEFERRED_ENGINES)} "
+            "(listed until hashed into allowlist)"
+        )
+
+    catalog = engine_catalog_summary()
     lines.append(
-        "engines download: deferred (Sprint 0 pin is detect+stamp only; "
-        "ensure_engine(..., download=True) returns download_deferred)"
+        "engines download: allowlist-only under SENTINEL_HOME/bin "
+        f"(allowlisted={catalog['allowlisted'] or '[]'}; never mutates PATH)"
+    )
+    lines.append(
+        "note: missing optional engines do not fail doctor in Sprint 0"
     )
 
-    # Event schema smoke
     try:
         Event(type="DOMAIN", source_module="doctor", program_id="doctor")
         lines.append("event schema: ok")
     except Exception as exc:  # noqa: BLE001
         ok = False
         lines.append(f"event schema: FAIL ({exc})")
+
+    # Optional package imports (eye/hunt)
+    for pkg in ("shadowseye", "gungnir"):
+        try:
+            mod = __import__(pkg)
+            lines.append(f"{pkg}: import OK (v{getattr(mod, '__version__', '?')})")
+        except Exception as exc:  # noqa: BLE001
+            lines.append(f"{pkg}: not importable ({exc}) — optional for core doctor")
 
     status = "PASS" if ok else "FAIL"
     lines.append(f"doctor: {status}")
@@ -159,7 +210,6 @@ def cmd_program_import_brief(args: argparse.Namespace) -> int:
 
     scope = parse_brief(text, platform=use_platform)
 
-    # create-or-open program
     root = create_program(args.program_id)
     scope_file = root / "scope.txt"
     scope_file.write_text(scope_to_raw_text(scope), encoding="utf-8")
@@ -170,7 +220,6 @@ def cmd_program_import_brief(args: argparse.Namespace) -> int:
         deny_count=len(scope.deny),
     )
 
-    # ensure graph exists / opens
     with open_graph(args.program_id):
         pass
 
@@ -191,14 +240,103 @@ def cmd_program_import_brief(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_scope_gate_flags(p: argparse.ArgumentParser) -> None:
+    g = p.add_mutually_exclusive_group(required=False)
+    g.add_argument(
+        "--scope",
+        dest="scope_path",
+        default=None,
+        help="Path to scope.txt (allow/deny). Required unless --i-own-this.",
+    )
+    g.add_argument(
+        "--i-own-this",
+        dest="i_own_this",
+        action="store_true",
+        help="Lab override: acknowledge you own/authorized the targets.",
+    )
+
+
+def cmd_eye_run(args: argparse.Namespace) -> int:
+    from shadowseye.runner import run_eye
+
+    if not args.scope_path and not args.i_own_this:
+        print(
+            "error: eye run requires --scope PATH or --i-own-this",
+            file=sys.stderr,
+        )
+        return 2
+
+    ports = None
+    if args.ports:
+        ports = [int(x.strip()) for x in args.ports.split(",") if x.strip()]
+
+    result = run_eye(
+        args.program_id,
+        args.domains,
+        scope_path=args.scope_path,
+        i_own_this=args.i_own_this,
+        wordlist_path=args.wordlist,
+        ports=ports,
+        resolve=not args.no_resolve,
+        scan_ports=not args.no_ports,
+        port_host_override=args.port_host,
+    )
+    print(json.dumps(
+        {
+            "program_id": result["program_id"],
+            "event_count": result["event_count"],
+            "scoped": result["scoped"],
+            "domains": result["inventory"].get("domains"),
+            "dns_names": len(result["inventory"].get("dns_names") or []),
+            "ips": len(result["inventory"].get("ips") or []),
+            "ports": result["inventory"].get("ports"),
+        },
+        indent=2,
+    ))
+    return 0
+
+
+def cmd_hunt_run(args: argparse.Namespace) -> int:
+    from gungnir.runner import run_hunt
+
+    if not args.scope_path and not args.i_own_this:
+        print(
+            "error: hunt run requires --scope PATH or --i-own-this",
+            file=sys.stderr,
+        )
+        return 2
+
+    result = run_hunt(
+        args.program_id,
+        scope_path=args.scope_path,
+        i_own_this=args.i_own_this,
+        title=args.title,
+        host=args.host,
+        findings_file=args.findings,
+        correlate=not args.no_correlate,
+        evidence_summary=args.evidence,
+    )
+    print(json.dumps(
+        {
+            "program_id": result["program_id"],
+            "findings_emitted": result["findings_emitted"],
+            "correlated": result["correlated"],
+            "scoped": result["scoped"],
+            "events": result["events"],
+        },
+        indent=2,
+    ))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Sprint 0 scaffold)",
+        description="Sentinel Suite CLI (Sprint 0)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
-    d = sub.add_parser("doctor", help="Check SENTINEL_HOME, python, core import, bin, engines")
+    d = sub.add_parser("doctor", help="Check SENTINEL_HOME, python, core, engines")
     d.set_defaults(func=cmd_doctor)
 
     prog = sub.add_parser("program", help="Program management")
@@ -221,6 +359,73 @@ def build_parser() -> argparse.ArgumentParser:
         help="Brief format (default: auto-detect)",
     )
     imp.set_defaults(func=cmd_program_import_brief)
+
+    eye = sub.add_parser("eye", help="ShadowsEye thin inventory runner")
+    eye_sub = eye.add_subparsers(dest="eye_cmd", required=True)
+    eye_run = eye_sub.add_parser(
+        "run",
+        help="Gather thin inventory and emit into program graph",
+    )
+    eye_run.add_argument("program_id", help="Program id (created if missing)")
+    eye_run.add_argument(
+        "domains",
+        nargs="+",
+        help="Target domain(s) — authorized assets only",
+    )
+    _add_scope_gate_flags(eye_run)
+    eye_run.add_argument(
+        "--wordlist",
+        default=None,
+        help="Optional subdomain wordlist (tiny default if omitted)",
+    )
+    eye_run.add_argument(
+        "--ports",
+        default=None,
+        help="Comma-separated ports to probe (default: 80,443)",
+    )
+    eye_run.add_argument(
+        "--no-resolve",
+        action="store_true",
+        help="Skip DNS resolution (lab)",
+    )
+    eye_run.add_argument(
+        "--no-ports",
+        action="store_true",
+        help="Skip port probes",
+    )
+    eye_run.add_argument(
+        "--port-host",
+        default=None,
+        help="Override host for port probes (e.g. 127.0.0.1 in tests)",
+    )
+    eye_run.set_defaults(func=cmd_eye_run)
+
+    hunt = sub.add_parser("hunt", help="Gungnir thin finding runner")
+    hunt_sub = hunt.add_subparsers(dest="hunt_cmd", required=True)
+    hunt_run = hunt_sub.add_parser(
+        "run",
+        help="Emit verified findings into program graph",
+    )
+    hunt_run.add_argument("program_id", help="Program id (created if missing)")
+    _add_scope_gate_flags(hunt_run)
+    hunt_run.add_argument("--title", default=None, help="Demo finding title")
+    hunt_run.add_argument("--host", default=None, help="Finding host (for scope gate)")
+    hunt_run.add_argument(
+        "--findings",
+        default=None,
+        help="JSON file with finding object(s) or {findings: [...]}",
+    )
+    hunt_run.add_argument(
+        "--evidence",
+        default=None,
+        help="Optional evidence summary linked to each finding",
+    )
+    hunt_run.add_argument(
+        "--no-correlate",
+        action="store_true",
+        help="Skip thin correlate_findings dedupe",
+    )
+    hunt_run.set_defaults(func=cmd_hunt_run)
 
     return p
 
