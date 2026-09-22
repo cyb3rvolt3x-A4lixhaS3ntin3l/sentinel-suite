@@ -110,4 +110,4 @@ Fixtures are injected in tests via `run_pack(..., fixtures={...})`.
 
 ## Explicit defer
 
-Live SSRF collaborator, full coach UI, LLM prose, Guard, `--tools`, workflows, X, GraphQL pack, payment-flow live races
+Live SSRF collaborator, full coach UI, LLM prose, Guard, `--tools`, workflows, X, payment-flow live races (GraphQL → see PHASE_C_SLICE6.md)

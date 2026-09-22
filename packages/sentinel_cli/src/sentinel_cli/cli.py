@@ -675,8 +675,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack_run.add_argument(
         "pack_id",
         help=(
-            "Pack id (e.g. race_toctou | business_logic | "
-            "bola_idor_bfla | ato_oauth_oidc)"
+            "Pack id (e.g. graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)"
         ),
     )
     pack_run.add_argument(
@@ -763,7 +762,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack",
         dest="pack_id",
         default=None,
-        help="Filter findings by pack id (e.g. race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
+        help="Filter findings by pack id (e.g. graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
         "-o",

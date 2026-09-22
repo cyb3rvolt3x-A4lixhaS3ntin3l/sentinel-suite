@@ -12,7 +12,10 @@ class PackManifest:
     Pack discovery metadata.
 
     Field ``pack_class`` serializes as ``class`` (e.g. ato_oauth).
-    ``needs_roles`` is 1 or 2 — Role A required; Role B when 2.
+    ``needs_roles`` is 0, 1, or 2:
+      - 0: Role A optional (pack soft-fails auth-gated checks with coach)
+      - 1: Role A required (fail-closed)
+      - 2: Role A + Role B required (fail-closed)
     """
 
     id: str
@@ -25,8 +28,8 @@ class PackManifest:
     version: str = "0"
 
     def __post_init__(self) -> None:
-        if self.needs_roles not in (1, 2):
-            raise ValueError(f"needs_roles must be 1 or 2, got {self.needs_roles}")
+        if self.needs_roles not in (0, 1, 2):
+            raise ValueError(f"needs_roles must be 0, 1, or 2, got {self.needs_roles}")
         if not self.id.strip():
             raise ValueError("pack id must be non-empty")
 

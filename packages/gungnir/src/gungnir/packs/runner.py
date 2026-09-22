@@ -66,8 +66,24 @@ def _load_roles(
     role_a_path: str | Path | None = None,
     role_b_path: str | Path | None = None,
 ) -> dict[str, RoleSession]:
-    missing: list[str] = []
+    """Load role sessions.
+
+    ``needs_roles=0``: Role A optional — load if present, never fail-closed.
+    ``needs_roles=1``: Role A required (fail-closed).
+    ``needs_roles=2``: Role A + Role B required (fail-closed).
+    """
     sessions: dict[str, RoleSession] = {}
+    if needs_roles == 0:
+        # Soft: try Role A; pack decides how to coach if absent
+        try:
+            sessions["a"] = load_role_session(
+                program_id, "a", path=role_a_path
+            )
+        except RoleSessionError:
+            pass
+        return sessions
+
+    missing: list[str] = []
     try:
         sessions["a"] = load_role_session(
             program_id, "a", path=role_a_path

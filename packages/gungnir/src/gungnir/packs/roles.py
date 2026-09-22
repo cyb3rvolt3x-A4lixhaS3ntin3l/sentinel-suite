@@ -117,7 +117,12 @@ def load_role_session(
 
 def coach_missing_roles_message(*, needs_roles: int, missing: list[str]) -> str:
     """Coach-style (text) error when required role sessions are absent."""
-    need = "Role A" if needs_roles == 1 else "Role A and Role B"
+    if needs_roles <= 0:
+        need = "no roles required (optional Role A)"
+    elif needs_roles == 1:
+        need = "Role A"
+    else:
+        need = "Role A and Role B"
     miss = ", ".join(m.upper() for m in missing)
     return (
         f"Hunt pack fail-closed: needs {need} session fixture(s). "
@@ -127,4 +132,14 @@ def coach_missing_roles_message(*, needs_roles: int, missing: list[str]) -> str:
         f"under the program directory with keys cookies|headers|bearer. "
         f"This pack will not start without authenticated role context "
         f"(authorized / lab use only — no credential theft)."
+    )
+
+
+def coach_optional_role_a_missing_graphql() -> str:
+    """Soft coach when GraphQL mutation checks skip due to missing Role A."""
+    return (
+        "graphql pack: Role A session missing — mutation auth-diff checks "
+        "skipped (soft). Introspection / global-id / batch-hint fixtures still "
+        "run. Place lab-only roles/a.json with cookies|headers|bearer to enable "
+        "unauth-vs-auth mutation compares. Authorized / lab use only."
     )

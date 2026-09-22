@@ -1,6 +1,6 @@
 # gungnir (monorepo package)
 
-**Honest status (Phase C slice3):** bridge + thin hunt runner + **Hunt Pack framework** + **`ato_oauth_oidc` v0.2** + **`bola_idor_bfla` v0** (dual-role IDOR/BFLA fixtures).
+**Honest status (Phase C slice6):** bridge + thin hunt runner + **Hunt Pack framework** + **`ato_oauth_oidc` v0.2** + **`bola_idor_bfla` v0** (dual-role IDOR/BFLA fixtures).
 
 ## What this package IS
 
@@ -36,6 +36,22 @@
 - BOLA / IDOR (see pack `bola_idor_bfla`)
 - LLM-invented Steps to Reproduce / full report factory / coach UI
 - nuclei-all / data destruction / lockout-abuse loops
+
+### Pack `graphql` v0 — can
+
+- Treat GraphQL as schema + mutations + ID encoding (not “a URL”)
+- Introspection enabled/disabled candidates from fixtures (Role A optional)
+- Soft-skip mutation auth-diff with coach when Role A missing; still run other fixtures
+- Opaque/global ID enumeration-ish candidates (fixture only)
+- Batch/alias **needs_human hints only** (no floods); live-mock hard request caps
+- Checklist + honest verification; never auto-VERIFIED
+- Report: `sentinel hunt report <program> --pack graphql`
+
+### Pack `graphql` v0 — cannot
+
+- InQL full fork / schema dumps / data exfiltration
+- Live third-party GraphQL hammering / alias floods
+- Live SSRF collaborator, coach UI, Guard, `--tools`, workflows, X
 
 ### Pack `bola_idor_bfla` v0 — can
 
