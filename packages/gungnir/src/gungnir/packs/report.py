@@ -57,6 +57,16 @@ def _steps_from_evidence(evidence_events: list[Any]) -> list[str]:
                         "token_types="
                         + ",".join(str(x) for x in resp.get("token_types_observed"))
                     )
+                # XSS/DOM sink-proof fields (marker in sink context)
+                if resp.get("sink_kind"):
+                    bits.append(f"sink_kind={resp.get('sink_kind')}")
+                if resp.get("marker"):
+                    bits.append(f"marker={resp.get('marker')}")
+                if resp.get("marker_in_sink") is not None:
+                    bits.append(f"marker_in_sink={resp.get('marker_in_sink')}")
+                if resp.get("sink_snippet"):
+                    snip = str(resp.get("sink_snippet"))
+                    bits.append("sink_snippet=" + snip[:160])
                 if bits:
                     steps.append(f"{len(steps) + 1}. Response/evidence: " + "; ".join(bits))
             check = stub.get("check")
