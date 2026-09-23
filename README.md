@@ -130,6 +130,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/LICENSE_NOTE.md`](docs/LICENSE_NOTE.md) | MIT vs Apache preference |
 | [`docs/SPRINT0.md`](docs/SPRINT0.md) | Phase A milestones + SHAs |
 | [`docs/SPRINT0_REVIEW.md`](docs/SPRINT0_REVIEW.md) | Short Founder review pointer |
+| [`docs/PHASE_C_REVIEW.md`](docs/PHASE_C_REVIEW.md) | Phase C Founder review pointer (IDLE) |
 | [`docs/PHASE_B_SLICE2.md`](docs/PHASE_B_SLICE2.md) | Slice2 reality table |
 | [`docs/PHASE_B_SLICE3.md`](docs/PHASE_B_SLICE3.md) | Slice3 L5 tech fingerprint |
 | [`docs/PHASE_B_SLICE4.md`](docs/PHASE_B_SLICE4.md) | Slice4 deeper L5 + L6 tech diffs |
@@ -163,4 +164,5 @@ tests/                   # suite tests
 ## Maintainers
 
 Product north star (box): `/workspace/deliverables/SENTINEL_SUITE_GODLEVEL_PLAN_2026-09-22.md`  
-Founder review packet (box): `/workspace/deliverables/SENTINEL_SUITE_SPRINT0_REVIEW.md`
+Founder review packet Sprint 0 (box): `/workspace/deliverables/SENTINEL_SUITE_SPRINT0_REVIEW.md`  
+Founder review packet Phase C (box): `/workspace/deliverables/SENTINEL_SUITE_PHASE_C_REVIEW.md`
