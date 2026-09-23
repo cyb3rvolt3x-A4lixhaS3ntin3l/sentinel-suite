@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice8 shipped** — `csrf_state` pack v0 (missing-token / unbound / SameSite cookie-flag candidates + pattern coach hints) + `xss_dom` / `graphql` / `race_toctou` / `business_logic` / `bola_idor_bfla` / `ato_oauth_oidc` intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase C slice9 shipped** — `open_redirect` pack v0 (param / `//evil` / encoded / Location-reflection candidates + allowlist/denylist coach hints) + `csrf_state` / `xss_dom` / `graphql` / `race_toctou` / `business_logic` / `bola_idor_bfla` / `ato_oauth_oidc` intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, live SSRF collaborator, full coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -49,11 +49,13 @@ sentinel hunt pack run xss_dom --program demo --i-own-this
 sentinel hunt report demo --pack xss_dom -o ./xss-report.md
 sentinel hunt pack run csrf_state --program demo --i-own-this
 sentinel hunt report demo --pack csrf_state -o ./csrf-report.md
+sentinel hunt pack run open_redirect --program demo --i-own-this
+sentinel hunt report demo --pack open_redirect -o ./or-report.md
 sentinel hunt confirm-finding demo <finding-id> --status confirmed --note 'lab review' --mark-role a
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
-Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0` (`graphql` / `xss_dom` / `csrf_state` — Role A optional); `bola_idor_bfla` also requires Role B at `roles/b.json`. `business_logic` / `graphql` / `xss_dom` / `csrf_state` findings stay `needs_human` until `sentinel hunt confirm-finding`.
+Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0` (`graphql` / `xss_dom` / `csrf_state` / `open_redirect` — Role A optional); `bola_idor_bfla` also requires Role B at `roles/b.json`. `business_logic` / `graphql` / `xss_dom` / `csrf_state` / `open_redirect` findings stay `needs_human` until `sentinel hunt confirm-finding`.
 
 Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N` · `--no-fingerprint` · `--no-http`.
 ```bash
@@ -119,6 +121,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/PHASE_C_SLICE6.md`](docs/PHASE_C_SLICE6.md) | Slice6 graphql pack v0 |
 | [`docs/PHASE_C_SLICE7.md`](docs/PHASE_C_SLICE7.md) | Slice7 xss_dom sink-proof pack v0 |
 | [`docs/PHASE_C_SLICE8.md`](docs/PHASE_C_SLICE8.md) | Slice8 csrf_state pack v0 |
+| [`docs/PHASE_C_SLICE9.md`](docs/PHASE_C_SLICE9.md) | Slice9 open_redirect pack v0 |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
 ## Layout
