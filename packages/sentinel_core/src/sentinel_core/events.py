@@ -36,6 +36,7 @@ EVENT_TYPES = frozenset(
         "CHAIN",
         "FLOW",
         "STEP",
+        "COLLABORATOR_HIT",
     }
 )
 

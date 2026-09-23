@@ -420,6 +420,10 @@ def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
             max_duration=getattr(args, "max_duration", None),
             i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
             collaborator=getattr(args, "collaborator", None),
+            listen=bool(getattr(args, "listen", False)),
+            listen_bind=getattr(args, "listen_bind", None),
+            listen_port=getattr(args, "listen_port", None),
+            listen_max_hits=getattr(args, "listen_max_hits", None),
         )
     except PackRunError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -447,6 +451,8 @@ def cmd_hunt_pack_run(args: argparse.Namespace) -> int:
                 "pack_notes": result.get("pack_notes") or [],
                 "caps": result.get("caps"),
                 "observations": result.get("observations") or [],
+                "collaborator": result.get("collaborator"),
+                "listen": result.get("listen"),
             },
             indent=2,
         )
@@ -530,10 +536,39 @@ def cmd_hunt_findings(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_collaborator_serve(args: argparse.Namespace) -> int:
+    """Owned loopback collaborator callback listener (Phase C slice15)."""
+    from gungnir.packs.ssrf_collaborator.caps import CapExceededError
+    from gungnir.packs.ssrf_collaborator.listener import (
+        ListenerHitCapError,
+        serve_collaborator,
+    )
+
+    try:
+        summary = serve_collaborator(
+            program_id=args.program_id,
+            bind=getattr(args, "bind", None),
+            port=getattr(args, "port", None),
+            max_duration=getattr(args, "max_duration", None),
+            max_hits=getattr(args, "max_hits", None),
+            i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
+            callback_path=getattr(args, "callback_path", None),
+        )
+    except ListenerHitCapError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return int(exc.exit_code)
+    except CapExceededError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return int(exc.exit_code)
+
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase C slice5)",
+        description="Sentinel Suite CLI (Phase C slice15)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -787,8 +822,42 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "ssrf_collaborator: operator-owned callback URL "
             "(default: local 127.0.0.1 fixture mock). Cloud metadata IPs "
-            "refused unless --i-understand-lab AND lab fixture mode."
+            "refused unless --i-understand-lab AND lab fixture mode. "
+            "When omitted with --listen, uses the local owned listener URL."
         ),
+    )
+    pack_run.add_argument(
+        "--listen",
+        dest="listen",
+        action="store_true",
+        help=(
+            "ssrf_collaborator: start a local owned collaborator listener "
+            "(default bind 127.0.0.1) and use its URL when --collaborator "
+            "is omitted. Fixture-only path still works without --listen."
+        ),
+    )
+    pack_run.add_argument(
+        "--listen-bind",
+        dest="listen_bind",
+        default=None,
+        help=(
+            "ssrf_collaborator --listen bind address (default 127.0.0.1). "
+            "Non-loopback (0.0.0.0 / ::) requires --i-understand-lab."
+        ),
+    )
+    pack_run.add_argument(
+        "--listen-port",
+        dest="listen_port",
+        type=int,
+        default=None,
+        help="ssrf_collaborator --listen port (default: ephemeral)",
+    )
+    pack_run.add_argument(
+        "--listen-max-hits",
+        dest="listen_max_hits",
+        type=int,
+        default=None,
+        help="ssrf_collaborator --listen max COLLABORATOR_HIT events (hard max 50)",
     )
     pack_run.set_defaults(func=cmd_hunt_pack_run)
 
@@ -894,6 +963,65 @@ def build_parser() -> argparse.ArgumentParser:
     )
     hunt_confirm.set_defaults(func=cmd_hunt_confirm_finding)
 
+    collab = sub.add_parser(
+        "collaborator",
+        help=(
+            "Owned collaborator callback listener (ssrf_collaborator; "
+            "default bind 127.0.0.1; no interactsh; no outbound scan)"
+        ),
+    )
+    collab_sub = collab.add_subparsers(dest="collaborator_cmd", required=True)
+    collab_serve = collab_sub.add_parser(
+        "serve",
+        help=(
+            "Listen for inbound SSRF collaborator callbacks on loopback; "
+            "log COLLABORATOR_HIT events to the program graph"
+        ),
+    )
+    collab_serve.add_argument(
+        "--program",
+        dest="program_id",
+        required=True,
+        help="Program id under SENTINEL_HOME (graph receives COLLABORATOR_HIT)",
+    )
+    collab_serve.add_argument(
+        "--bind",
+        default=None,
+        help="Bind address (default: 127.0.0.1). Non-loopback needs --i-understand-lab.",
+    )
+    collab_serve.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Listen port (default: 8765; use 0 for ephemeral)",
+    )
+    collab_serve.add_argument(
+        "--max-duration",
+        dest="max_duration",
+        type=float,
+        default=None,
+        help="Max listen duration seconds (default 120; hard max 300)",
+    )
+    collab_serve.add_argument(
+        "--max-hits",
+        dest="max_hits",
+        type=int,
+        default=None,
+        help="Max COLLABORATOR_HIT events to log (default 50; hard max 50)",
+    )
+    collab_serve.add_argument(
+        "--callback-path",
+        dest="callback_path",
+        default=None,
+        help="Callback path (default: /ssrf-callback)",
+    )
+    collab_serve.add_argument(
+        "--i-understand-lab",
+        dest="i_understand_lab",
+        action="store_true",
+        help="Required to bind non-loopback (0.0.0.0 / ::). Never for cloud metadata.",
+    )
+    collab_serve.set_defaults(func=cmd_collaborator_serve)
 
     return p
 

@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice14 shipped** — `ssrf_collaborator` pack v0 (owned collaborator stubs; metadata refuse; lab dual/triple gates); all 12 packs intact; slice13 confirm/report polish intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase C slice15 shipped** — owned collaborator **localhost listener** (`sentinel collaborator serve` + pack `--listen`; `COLLABORATOR_HIT` events); slice14 ssrf_collaborator + all 12 packs intact; confirm/report polish intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, full coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -58,7 +58,10 @@ sentinel hunt report demo --pack jwt_session -o ./jwt-session-report.md
 sentinel hunt pack run http_desync --program demo --i-own-this
 sentinel hunt pack run http_desync --program demo --i-own-this --i-understand-lab
 sentinel hunt report demo --pack http_desync -o ./http-desync-report.md
+sentinel collaborator serve --program demo
+sentinel collaborator serve --program demo --bind 127.0.0.1 --port 8765
 sentinel hunt pack run ssrf_collaborator --program demo --i-own-this
+sentinel hunt pack run ssrf_collaborator --program demo --i-own-this --listen
 sentinel hunt pack run ssrf_collaborator --program demo --i-own-this \
   --collaborator http://127.0.0.1:9999/cb
 sentinel hunt pack run ssrf_collaborator --program demo --i-own-this --i-understand-lab
@@ -69,7 +72,7 @@ sentinel hunt confirm-finding demo <finding-id> --status confirmed --note 'lab r
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
-Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0` (`graphql` / `xss_dom` / `csrf_state` / `open_redirect` / `cache_host` / `jwt_session` / `http_desync` / `ssrf_collaborator` — Role A optional); `bola_idor_bfla` also requires Role B at `roles/b.json`. All pack findings stay `needs_human` / `unverified` until `sentinel hunt confirm-finding` (note required; packs never auto-confirm). `http_desync` / `ssrf_collaborator` beyond pure fixtures also require `--i-understand-lab` (with `--i-own-this`); open-internet needs `--scope` too. `ssrf_collaborator` defaults to a local 127.0.0.1 collaborator mock; `--collaborator` must be operator-owned and refuses cloud metadata IPs unless lab fixture mode + `--i-understand-lab`.
+Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0` (`graphql` / `xss_dom` / `csrf_state` / `open_redirect` / `cache_host` / `jwt_session` / `http_desync` / `ssrf_collaborator` — Role A optional); `bola_idor_bfla` also requires Role B at `roles/b.json`. All pack findings stay `needs_human` / `unverified` until `sentinel hunt confirm-finding` (note required; packs never auto-confirm). `http_desync` / `ssrf_collaborator` beyond pure fixtures also require `--i-understand-lab` (with `--i-own-this`); open-internet needs `--scope` too. `ssrf_collaborator` defaults to a local 127.0.0.1 collaborator mock; `--listen` starts an owned localhost listener (COLLABORATOR_HIT); `--collaborator` must be operator-owned and refuses cloud metadata IPs unless lab fixture mode + `--i-understand-lab`. Public bind (`0.0.0.0`) needs `--i-understand-lab`; no interactsh / outbound scan.
 
 Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N` · `--no-fingerprint` · `--no-http`.
 ```bash
@@ -141,6 +144,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/PHASE_C_SLICE12.md`](docs/PHASE_C_SLICE12.md) | Slice12 http_desync pack v0 |
 | [`docs/PHASE_C_SLICE13.md`](docs/PHASE_C_SLICE13.md) | Slice13 confirm-finding + report polish |
 | [`docs/PHASE_C_SLICE14.md`](docs/PHASE_C_SLICE14.md) | Slice14 ssrf_collaborator pack v0 |
+| [`docs/PHASE_C_SLICE15.md`](docs/PHASE_C_SLICE15.md) | Slice15 owned collaborator listener |
 | [`docs/HUNTER_WORKFLOW.md`](docs/HUNTER_WORKFLOW.md) | Short hunter loop: map → pack → confirm → report |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
@@ -150,7 +154,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 packages/sentinel_core   # schema, graph, scope, engines
 packages/shadowseye      # Eye bridge + thin runner
 packages/gungnir         # Hunt bridge + thin runner + thin correlate
-packages/sentinel_cli    # `sentinel` → doctor, program, eye, hunt
+packages/sentinel_cli    # `sentinel` → doctor, program, eye, hunt, collaborator
 docs/                    # ENGINES, HUMAN-QUEUE, LICENSE_NOTE, SPRINT0*
 workers/                 # Go later (README only)
 tests/                   # suite tests

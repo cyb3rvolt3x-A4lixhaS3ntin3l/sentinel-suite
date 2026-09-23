@@ -24,6 +24,13 @@ sentinel hunt pack run business_logic --program demo --i-own-this
 Lab-gated packs (`race_toctou`, `http_desync` beyond fixtures) also need
 `--i-understand-lab`. Open-internet needs `--scope` too.
 
+Optional owned collaborator listener (ssrf_collaborator; loopback default):
+
+```bash
+sentinel collaborator serve --program demo
+sentinel hunt pack run ssrf_collaborator --program demo --i-own-this --listen
+```
+
 ## 3) Confirm (human gate)
 
 ```bash

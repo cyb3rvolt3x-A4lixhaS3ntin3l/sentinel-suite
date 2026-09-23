@@ -137,6 +137,10 @@ def run_pack(
     max_duration: float | None = None,
     i_understand_lab: bool = False,
     collaborator: str | None = None,
+    listen: bool = False,
+    listen_bind: str | None = None,
+    listen_port: int | None = None,
+    listen_max_hits: int | None = None,
 ) -> dict[str, Any]:
     """
     Run a hunt pack: require_scope_or_lab, fail-closed on roles, emit candidates.
@@ -184,9 +188,39 @@ def run_pack(
         "max_duration": max_duration,
         "i_understand_lab": bool(i_understand_lab),
         "collaborator": collaborator,
+        "listen": bool(listen),
     }
 
-    result = pack["run"](ctx)
+    listener = None
+    listen_summary = None
+    if listen and pack_id == "ssrf_collaborator" and not collaborator:
+        from gungnir.packs.ssrf_collaborator.caps import CapExceededError
+        from gungnir.packs.ssrf_collaborator.listener import start_ephemeral_listener
+
+        # Local loopback listener; fixture-only path still works without live hits.
+        # max_duration for pack-scoped listen: use max_duration if set else default.
+        try:
+            listener = start_ephemeral_listener(
+                program_id=program_id,
+                bind=listen_bind,
+                port=0 if listen_port is None else int(listen_port),
+                max_duration=max_duration,
+                max_hits=listen_max_hits,
+                i_understand_lab=bool(i_understand_lab),
+                emit_to_graph=True,
+            )
+        except CapExceededError as exc:
+            raise PackRunError(str(exc), exit_code=exc.exit_code) from exc
+        ctx["collaborator"] = listener.url
+        ctx["listener"] = listener
+        ctx["listen"] = True
+
+    try:
+        result = pack["run"](ctx)
+    finally:
+        if listener is not None:
+            listen_summary = listener.summary()
+            listener.stop()
     if not isinstance(result, dict):
         raise PackRunError(f"pack {pack_id} returned non-dict result", exit_code=1)
 
@@ -392,4 +426,6 @@ def run_pack(
         "caps": result.get("caps"),
         "observations": result.get("observations") or [],
         "fixtures_only": result.get("fixtures_only"),
+        "collaborator": result.get("collaborator") or ctx.get("collaborator"),
+        "listen": listen_summary,
     }

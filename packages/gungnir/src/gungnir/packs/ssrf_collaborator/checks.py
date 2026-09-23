@@ -309,6 +309,12 @@ def run_checks(ctx: dict[str, Any]) -> dict[str, Any]:
         raise PackRunError(str(exc), exit_code=exc.exit_code) from exc
 
     notes.append(f"collaborator={caps.collaborator}")
+    if ctx.get("listen"):
+        notes.append(
+            "owned collaborator listener active (--listen); "
+            "inbound callbacks log COLLABORATOR_HIT on the program graph; "
+            "default bind 127.0.0.1; no outbound scan; no interactsh"
+        )
 
     for u in live:
         host = host_of(u)
