@@ -6,9 +6,11 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 readme = "README.md"
 
-# Root is not a published wheel. Install packages individually:
+# Root is not a published wheel. Install packages individually (or meta):
 #   pip install -e packages/sentinel_core -e packages/shadowseye \
-#               -e packages/gungnir -e packages/sentinel_cli
+#               -e packages/gungnir -e packages/sentinel_cli \
+#               -e packages/sentinel_suite
+# See docs/INSTALL.md — PyPI/pipx publish not claimed until Founder ships.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -17,5 +19,6 @@ pythonpath = [
   "packages/shadowseye/src",
   "packages/gungnir/src",
   "packages/sentinel_cli/src",
+  "packages/sentinel_suite/src",
 ]
 addopts = "-q"

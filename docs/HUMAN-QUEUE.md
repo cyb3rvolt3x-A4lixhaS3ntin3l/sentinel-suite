@@ -54,3 +54,11 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 - L2: hardened `crtsh_query`; `reverse_ip_neighbours` with hard scope-distance; `--no-reverse-ip` / `--scope-distance`
 - Ranker: light MX-only demotion; Watch snapshot may include identity keys
 - Engine hash proposal written for Founder vetting — allowlist still empty
+
+
+## Phase F landed (distribution)
+
+- Brand path/git installs + meta `sentinel-suite`; **PyPI publish still deferred**
+- Docker Compose clean-room UI+engine
+- Packaging dry-run for dmg/msi/AppImage/deb; **workflow OAuth still HOLD** (`docs/ci-pending/tauri.yml`)
+- Doctor degrade: Nmap → Naabu-class; optional API keys; WSL — see `docs/WSL2.md`

@@ -19,7 +19,8 @@ jobs:
           pip install -e packages/sentinel_core \
                       -e packages/shadowseye \
                       -e packages/gungnir \
-                      -e packages/sentinel_cli
+                      -e packages/sentinel_cli \
+                      -e packages/sentinel_suite
       - name: Pytest
         run: pytest -q
       - name: Doctor

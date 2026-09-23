@@ -25,13 +25,18 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "msi", "appimage"],
+    "targets": [
+      "dmg",
+      "msi",
+      "appimage",
+      "deb"
+    ],
     "icon": [
       "icons/icon.png"
     ],
     "category": "DeveloperTool",
     "shortDescription": "Authorized OSINT + hunt packs local UI",
-    "longDescription": "Desktop wrap around sentinel ui (http://127.0.0.1:8888). Browser remains first-class. No Electron."
+    "longDescription": "Desktop wrap around sentinel ui (http://127.0.0.1:8888). Browser remains first-class. No Electron. Targets: dmg/msi/AppImage/deb when tooling present."
   },
   "plugins": {}
 }

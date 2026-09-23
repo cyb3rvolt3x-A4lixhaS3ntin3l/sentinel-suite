@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E3)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase F)."""
 
 from __future__ import annotations
 
@@ -118,7 +118,7 @@ def cmd_doctor(_: argparse.Namespace) -> int:
         f"(allowlisted={catalog['allowlisted'] or '[]'}; never mutates PATH)"
     )
     lines.append(
-        "note: missing optional engines do not fail doctor in Sprint 0"
+        "note: missing optional engines do not fail doctor (Phase F degrade)"
     )
 
     try:
@@ -135,6 +135,19 @@ def cmd_doctor(_: argparse.Namespace) -> int:
             lines.append(f"{pkg}: import OK (v{getattr(mod, '__version__', '?')})")
         except Exception as exc:  # noqa: BLE001
             lines.append(f"{pkg}: not importable ({exc}) — optional for core doctor")
+
+    # Phase F: Nmap/Naabu degrade, optional API keys, WSL — never hard-fail product
+    try:
+        from sentinel_cli.doctor import format_doctor_extras
+
+        extra_lines, _extra = format_doctor_extras(home_bin=bin_dir(home))
+        lines.extend(extra_lines)
+        lines.append(
+            "note: missing Nmap / API keys / WSL degrade messaging only — "
+            "doctor still PASS when core is healthy"
+        )
+    except Exception as exc:  # noqa: BLE001
+        lines.append(f"phase-f doctor extras: skip ({exc}) — core checks still apply")
 
     status = "PASS" if ok else "FAIL"
     lines.append(f"doctor: {status}")
@@ -716,7 +729,7 @@ def cmd_collaborator_serve(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase C slice15)",
+        description="Sentinel Suite CLI (Phase F distribution)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 

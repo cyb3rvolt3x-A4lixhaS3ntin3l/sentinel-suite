@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase D4 — Tauri scaffold dry-run (config checks; no inventing green CI)."""
+"""Phase D4/F — Tauri scaffold dry-run (dmg/msi/AppImage/deb; no inventing green CI)."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def main() -> int:
                 "Tauri wraps the same loopback SPA"
             )
         targets = ((conf.get("bundle") or {}).get("targets")) or []
-        for t in ("dmg", "msi", "appimage"):
+        for t in ("dmg", "msi", "appimage", "deb"):
             if t not in targets:
                 warnings.append(f"bundle.targets missing {t!r} (scaffolding hint)")
 

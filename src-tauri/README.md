@@ -17,7 +17,7 @@ Tauri does **not** replace the browser UI. No Electron.
 # Install CLI once (host must have rustc + system deps for webview)
 cargo install tauri-cli --version "^2"
 cargo tauri build
-# → .dmg (macOS) / .msi (Windows) / .AppImage (Linux) when tooling present
+# → .dmg (macOS) / .msi (Windows) / .AppImage + .deb (Linux) when tooling present
 ```
 
 Dry-run (no full compile):
@@ -25,6 +25,7 @@ Dry-run (no full compile):
 ```bash
 python scripts/tauri_dry_run.py
 # or: npm run tauri:dry-run
+python scripts/packaging_dry_run.py   # Phase F: targets + honest blockers
 ```
 
 ## Packaging CI

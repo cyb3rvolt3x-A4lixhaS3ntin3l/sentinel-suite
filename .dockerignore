@@ -1,0 +1,11 @@
+.venv
+.git
+.pytest_cache
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+src-tauri/target
+node_modules
+.mypy_cache
+*.sqlite
+*.sqlite-*

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sentinel-cli"
 version = "0.1.0"
-description = "Sentinel Suite CLI (doctor, program, eye, hunt)"
+description = "Sentinel Suite CLI (doctor, program, eye, hunt, ui, lab) — Phase F"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
@@ -17,6 +17,8 @@ dependencies = [
 
 [project.scripts]
 sentinel = "sentinel_cli.cli:main"
+# Brand alias kept on CLI package for path installs without meta wheel
+sentinel-suite-cli = "sentinel_cli.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

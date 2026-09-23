@@ -1,0 +1,44 @@
+# Sentinel Suite — clean-room Compose (Phase F)
+# One service = engine manage + local UI (sentinel ui).
+# Host bind stays loopback (127.0.0.1:8888). Inside the container, UI binds
+# 0.0.0.0 with --i-understand-lab so Docker port publishing works.
+#
+#   docker compose up --build
+#   open http://127.0.0.1:8888
+#   docker compose exec suite sentinel doctor
+#
+# Labs (juice-shop / crapi) remain optional — see README / lab docs. Not required here.
+# No invented cloud deploy. PyPI not claimed.
+
+services:
+  suite:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: sentinel-suite:local
+    container_name: sentinel-suite
+    environment:
+      SENTINEL_HOME: /data/sentinel
+    volumes:
+      - sentinel-data:/data/sentinel
+    ports:
+      - "127.0.0.1:8888:8888"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8888/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    command:
+      [
+        "sentinel",
+        "ui",
+        "--bind",
+        "0.0.0.0",
+        "--port",
+        "8888",
+        "--i-understand-lab",
+      ]
+
+volumes:
+  sentinel-data:

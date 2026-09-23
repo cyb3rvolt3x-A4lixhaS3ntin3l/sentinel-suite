@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase E COMPLETE (E0–E3)** — Coach lab-aware + Open Lab catalog (juice-shop · crapi · auth-session) + Lab 1 tutorial → report.md exit on `sentinel ui` / `sentinel lab`; D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, PyPI publish; Tauri packaging CI (OAuth HOLD — see docs/ci-pending/tauri.yml) |
+| **Status** | **Phase F COMPLETE** — distribution + Windows truth: brand pip/pipx story (`shadowseye` · `gungnir` · `sentinel-suite`), Docker Compose clean-room UI+engine, Tauri dmg/msi/AppImage+deb scaffolding (dry-run), `sentinel doctor` degrade (Nmap→Naabu-class / API keys / WSL), WSL2 docs; Phase E labs + D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, **PyPI index publish** (path/git OK); Tauri packaging CI green (OAuth HOLD — see docs/ci-pending/tauri.yml); full `cargo tauri build` without tauri-cli |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -92,7 +92,20 @@ Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-iden
 sentinel eye run demo example.com --i-own-this --json --watch --no-tools
 ```
 
-**Future pipx story (branding only; not published):**
+**Brand packages + pipx (path today; PyPI later):** see [`docs/INSTALL.md`](docs/INSTALL.md) · WSL2: [`docs/WSL2.md`](docs/WSL2.md)
+
+```bash
+pip install -e packages/sentinel_suite   # meta → `sentinel`
+# thin brand CLIs also available after editable install:
+shadowseye version
+gungnir packs
+# Docker clean-room:
+# docker compose up --build   → http://127.0.0.1:8888
+# Packaging dry-run:
+python scripts/packaging_dry_run.py
+```
+
+Future index story (**not published yet**):
 
 ```text
 pipx install shadowseye          # Eye only
@@ -141,6 +154,14 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 - E0/E1: [`docs/PHASE_E_SLICE0.md`](docs/PHASE_E_SLICE0.md) · [`docs/PHASE_E_SLICE1.md`](docs/PHASE_E_SLICE1.md) — Open Lab + lab-aware Coach
 - Non-goals v1: Burp replacement, team mode, cloud sync, Electron; Tauri optional shell (D4 scaffold)
 
+## Phase F (distribution + Windows truth)
+
+- Plan: [`docs/PHASE_F_PLAN.md`](docs/PHASE_F_PLAN.md) (full: `/workspace/deliverables/SENTINEL_SUITE_PHASE_F_PLAN.md`)
+- Install: [`docs/INSTALL.md`](docs/INSTALL.md) · WSL2: [`docs/WSL2.md`](docs/WSL2.md)
+- Ship: [`docs/PHASE_F_SHIP.md`](docs/PHASE_F_SHIP.md)
+- Compose: `docker compose up --build` → http://127.0.0.1:8888
+- Doctor degrades on missing Nmap / API keys / WSL — never hard-fails the product
+
 ## License
 
 **MIT** (consistency with live ShadowsEye / Gungnir). Founder preference Apache-2.0 — see [`docs/LICENSE_NOTE.md`](docs/LICENSE_NOTE.md).
@@ -172,6 +193,10 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/PHASE_C_SLICE15.md`](docs/PHASE_C_SLICE15.md) | Slice15 owned collaborator listener |
 | [`docs/HUNTER_WORKFLOW.md`](docs/HUNTER_WORKFLOW.md) | Short hunter loop: map → pack → confirm → report |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
+| [`docs/INSTALL.md`](docs/INSTALL.md) | pip/pipx/path/git + Compose + doctor (Phase F) |
+| [`docs/WSL2.md`](docs/WSL2.md) | Windows + WSL2 engine truth (Phase F) |
+| [`docs/PHASE_F_PLAN.md`](docs/PHASE_F_PLAN.md) | Phase F plan pointer |
+| [`docs/PHASE_F_SHIP.md`](docs/PHASE_F_SHIP.md) | Phase F ship notes |
 
 ## Layout
 
@@ -179,8 +204,11 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 packages/sentinel_core   # schema, graph, scope, engines
 packages/shadowseye      # Eye bridge + thin runner
 packages/gungnir         # Hunt bridge + thin runner + thin correlate
-packages/sentinel_cli    # `sentinel` → doctor, program, eye, hunt, collaborator
-docs/                    # ENGINES, HUMAN-QUEUE, LICENSE_NOTE, SPRINT0*
+packages/sentinel_cli    # `sentinel` → doctor, program, eye, hunt, collaborator, ui, lab
+packages/sentinel_suite  # meta brand wheel `sentinel-suite` → `sentinel`
+docker/ + docker-compose.yml  # clean-room UI + engine (Phase F)
+docs/                    # ENGINES, INSTALL, WSL2, HUMAN-QUEUE, LICENSE_NOTE, SPRINT0*
+scripts/                 # tauri_dry_run + packaging_dry_run
 workers/                 # Go later (README only)
 tests/                   # suite tests
 ```

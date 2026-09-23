@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentinel-suite"
+version = "0.1.0"
+description = "Sentinel Suite meta package — ShadowsEye + Gungnir + sentinel CLI (installable brand name)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Cyb3rVolt3x / AndraxHub contributors" }]
+dependencies = [
+  "sentinel-cli>=0.1.0",
+  "shadowseye>=0.1.0",
+  "gungnir>=0.1.0",
+  "sentinel_core>=0.1.0",
+]
+
+# Re-export the same console script so `pipx install sentinel-suite` yields `sentinel`.
+[project.scripts]
+sentinel = "sentinel_cli.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite"
+Documentation = "https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite#readme"
+Repository = "https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite"
+
+[tool.setuptools.packages.find]
+where = ["src"]

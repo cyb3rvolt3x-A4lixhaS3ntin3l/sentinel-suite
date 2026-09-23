@@ -92,3 +92,16 @@ Candidate release URLs + published checksums for `subfinder` / `httpx` are liste
 - `docs/ENGINE_HASH_PROPOSAL.md` (same proposal; allowlist stays empty until approved)
 
 **Do not** treat those rows as allowlisted until a human verifies the artifact and decides zip-vs-binary install semantics.
+
+
+## Port-scan tooling (Phase F doctor)
+
+Eye **defaults** to bounded stdlib TCP connect probes — **Nmap is optional**.
+
+| Tool | Doctor behavior |
+| --- | --- |
+| **Nmap** present | Report path; Eye still defaults to TCP connect unless wired later |
+| **Nmap** missing | Degrade messaging → **Naabu-class** (Naabu remains deferred / not allowlisted) + stdlib TCP |
+| **Naabu** | Deferred engine name; may be detected on PATH but not downloaded |
+
+Missing Nmap / Naabu **never** fails `sentinel doctor` when core is healthy.

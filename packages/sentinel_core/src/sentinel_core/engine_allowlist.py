@@ -32,6 +32,7 @@ COMMON_DETECT: tuple[str, ...] = (
     "true",
     "curl",
     "wget",
+    "nmap",  # optional; missing → doctor Naabu-class degrade (Phase F)
 )
 
 

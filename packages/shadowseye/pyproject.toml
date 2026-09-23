@@ -5,10 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shadowseye"
 version = "0.1.0"
-description = "ShadowsEye thin bridge stub — emits sentinel_core events (Sprint 0)"
+description = "ShadowsEye (Eye) — attack-surface watch bridge for Sentinel Suite"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = ["sentinel_core>=0.1.0"]
+
+[project.scripts]
+shadowseye = "shadowseye.cli:main"
+
+[project.optional-dependencies]
+# Full suite UX (doctor/ui/labs) still via sentinel-cli / sentinel-suite
+suite = ["sentinel-cli>=0.1.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
