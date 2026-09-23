@@ -401,7 +401,8 @@ def test_api_pack_run_log_lines_and_async_stop(ui_server_skip):
 def test_spa_mentions_d1_screens():
     root = resolve_ui_static_root()
     html = (root / "index.html").read_text(encoding="utf-8")
-    assert "Phase D1" in html
+    # D2 supersedes banner text; D1 screens must remain.
+    assert "Phase D1" in html or "Phase D2" in html
     assert "view-scope" in html
     assert "view-reports" in html
     assert "confirm-form" in html

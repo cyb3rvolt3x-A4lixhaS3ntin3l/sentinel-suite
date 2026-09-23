@@ -97,3 +97,14 @@ button.danger {
 .auth-banner button {
   margin-left: 0.5rem; padding: 0.2rem 0.5rem; font-size: 0.8rem;
 }
+
+
+/* D2 additions */
+.delta-added { color: var(--ok); }
+.delta-removed { color: var(--bad); }
+.score-pill {
+  display: inline-block; font-family: var(--mono); font-size: 0.75rem;
+  padding: 0.1rem 0.4rem; border-radius: 999px;
+  background: #1a2433; color: var(--accent); border: 1px solid var(--border);
+}
+.empty-state { color: var(--muted); padding: 1rem 0.25rem; font-size: 0.9rem; }

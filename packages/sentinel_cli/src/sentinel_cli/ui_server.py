@@ -1,4 +1,4 @@
-"""Phase D0/D1 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
+"""Phase D0–D2 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
 
 from __future__ import annotations
 
@@ -796,6 +796,525 @@ _MIME = {
     ".md": "text/markdown; charset=utf-8",
 }
 
+
+def _parse_iso_ts(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    try:
+        text = str(value).strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except (TypeError, ValueError):
+        return None
+
+
+def _window_to_timedelta(window: str) -> Any:
+    """Return timedelta for 24h/7d, or None for latest-vs-previous."""
+    from datetime import timedelta
+
+    w = (window or "24h").strip().lower()
+    if w in ("24h", "1d", "day", "last_24h"):
+        return timedelta(hours=24)
+    if w in ("7d", "week", "last_7d"):
+        return timedelta(days=7)
+    if w in ("latest", "last", "prev", "previous"):
+        return None
+    raise ValueError("window must be one of: 24h, 7d, latest")
+
+
+def _load_watch_history(program_root: Path) -> list[dict[str, Any]]:
+    """Load history snapshots newest-first (includes latest.json when present)."""
+    import json
+
+    from shadowseye.watch import load_latest_snapshot, runs_dir
+
+    rows: list[dict[str, Any]] = []
+    seen_ts: set[str] = set()
+    latest = load_latest_snapshot(program_root)
+    if latest:
+        ts = str(latest.get("ts") or "")
+        rows.append(latest)
+        if ts:
+            seen_ts.add(ts)
+    hist = runs_dir(program_root) / "history"
+    if hist.is_dir():
+        files = sorted(hist.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for fp in files:
+            try:
+                data = json.loads(fp.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            ts = str(data.get("ts") or "")
+            if ts and ts in seen_ts:
+                continue
+            if ts:
+                seen_ts.add(ts)
+            data = dict(data)
+            data["_path"] = str(fp)
+            rows.append(data)
+    # Sort by parsed ts descending
+    def _key(r: dict[str, Any]) -> float:
+        dt = _parse_iso_ts(r.get("ts"))
+        return dt.timestamp() if dt else 0.0
+
+    rows.sort(key=_key, reverse=True)
+    return rows
+
+
+def assets_payload(
+    program_id: str,
+    *,
+    kind: str = "all",
+    q: str = "",
+    min_score: float | None = None,
+) -> dict[str, Any]:
+    """
+    Read-only Eye inventory tables from the program graph.
+
+    kind: all|domain|dns|ip|port|url
+    Empty graph → honest empty tables (no fabricated rows).
+    """
+    from shadowseye.ranker import score_asset, score_hostname
+    from sentinel_core import open_graph
+
+    kind_l = (kind or "all").strip().lower()
+    allowed = {"all", "domain", "dns", "dns_name", "ip", "port", "open_port", "url"}
+    if kind_l not in allowed:
+        raise ValueError(f"kind must be one of all/domain/dns/ip/port/url, got {kind!r}")
+    q_l = (q or "").strip().lower()
+
+    try:
+        graph = open_graph(program_id)
+    except FileNotFoundError:
+        return {
+            "program_id": program_id,
+            "kind": kind_l,
+            "q": q,
+            "count": 0,
+            "assets": [],
+            "counts": {"domain": 0, "dns": 0, "ip": 0, "port": 0, "url": 0},
+            "empty": True,
+            "message": (
+                f"No graph for program {program_id!r}. "
+                f"Run: sentinel program init {program_id} && sentinel eye run …"
+            ),
+        }
+
+    rows: list[dict[str, Any]] = []
+
+    def _push(
+        *,
+        row_kind: str,
+        name: str,
+        score: float,
+        reasons: list[str],
+        first_seen: Any,
+        last_seen: Any,
+        event_id: str,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        rows.append(
+            {
+                "kind": row_kind,
+                "name": name,
+                "score": round(float(score), 2),
+                "reasons": list(reasons or []),
+                "first_seen": first_seen.isoformat()
+                if hasattr(first_seen, "isoformat")
+                else first_seen,
+                "last_seen": last_seen.isoformat()
+                if hasattr(last_seen, "isoformat")
+                else last_seen,
+                "event_id": event_id,
+                **(extra or {}),
+            }
+        )
+
+    for ev in graph.list_by_type("DOMAIN"):
+        domain = str((ev.payload or {}).get("domain") or "").strip()
+        if not domain:
+            continue
+        score, reasons = score_hostname(domain, first_seen=ev.first_seen)
+        _push(
+            row_kind="domain",
+            name=domain,
+            score=score,
+            reasons=reasons,
+            first_seen=ev.first_seen,
+            last_seen=ev.last_seen,
+            event_id=ev.id,
+        )
+
+    for ev in graph.list_by_type("DNS_NAME"):
+        name = str((ev.payload or {}).get("name") or "").strip()
+        if not name:
+            continue
+        score, reasons = score_hostname(name, first_seen=ev.first_seen)
+        _push(
+            row_kind="dns",
+            name=name,
+            score=score,
+            reasons=reasons,
+            first_seen=ev.first_seen,
+            last_seen=ev.last_seen,
+            event_id=ev.id,
+        )
+
+    for ev in graph.list_by_type("IP"):
+        ip = str((ev.payload or {}).get("ip") or "").strip()
+        if not ip:
+            continue
+        host = (ev.payload or {}).get("host")
+        asset = {"key": ip, "ip": ip, "host": host, "first_seen": ev.first_seen}
+        score, reasons = score_asset(asset)
+        # Prefer host interestingness when present
+        if host:
+            hs, hr = score_hostname(str(host), first_seen=ev.first_seen)
+            if hs > score:
+                score, reasons = hs, hr + ["via_host"]
+        _push(
+            row_kind="ip",
+            name=ip,
+            score=score,
+            reasons=reasons,
+            first_seen=ev.first_seen,
+            last_seen=ev.last_seen,
+            event_id=ev.id,
+            extra={"host": host},
+        )
+
+    for ev in graph.list_by_type("OPEN_PORT"):
+        host = str((ev.payload or {}).get("host") or "").strip()
+        port = (ev.payload or {}).get("port")
+        if not host or port is None:
+            continue
+        try:
+            port_i = int(port)
+        except (TypeError, ValueError):
+            continue
+        label = f"{host}:{port_i}"
+        score, reasons = score_hostname(host, first_seen=ev.first_seen)
+        service = (ev.payload or {}).get("service")
+        _push(
+            row_kind="port",
+            name=label,
+            score=score,
+            reasons=reasons,
+            first_seen=ev.first_seen,
+            last_seen=ev.last_seen,
+            event_id=ev.id,
+            extra={"host": host, "port": port_i, "service": service},
+        )
+
+    for ev in graph.list_by_type("URL"):
+        url = str((ev.payload or {}).get("url") or "").strip()
+        if not url:
+            continue
+        asset = {
+            "url": url,
+            "first_seen": ev.first_seen,
+            "title": (ev.payload or {}).get("title"),
+        }
+        score, reasons = score_asset(asset)
+        _push(
+            row_kind="url",
+            name=url,
+            score=score,
+            reasons=reasons,
+            first_seen=ev.first_seen,
+            last_seen=ev.last_seen,
+            event_id=ev.id,
+            extra={
+                "status": (ev.payload or {}).get("status"),
+                "title": (ev.payload or {}).get("title"),
+            },
+        )
+
+    # Close graph if supported
+    close = getattr(graph, "close", None)
+    if callable(close):
+        close()
+
+    kind_map = {
+        "domain": "domain",
+        "dns": "dns",
+        "dns_name": "dns",
+        "ip": "ip",
+        "port": "port",
+        "open_port": "port",
+        "url": "url",
+    }
+    if kind_l != "all":
+        want = kind_map[kind_l]
+        rows = [r for r in rows if r["kind"] == want]
+    if q_l:
+        rows = [
+            r
+            for r in rows
+            if q_l in str(r.get("name") or "").lower()
+            or q_l in str(r.get("host") or "").lower()
+            or q_l in str(r.get("title") or "").lower()
+        ]
+    if min_score is not None:
+        rows = [r for r in rows if float(r.get("score") or 0) >= float(min_score)]
+
+    rows.sort(key=lambda r: (-float(r.get("score") or 0), r.get("kind") or "", r.get("name") or ""))
+
+    counts = {"domain": 0, "dns": 0, "ip": 0, "port": 0, "url": 0}
+    for r in rows:
+        k = r["kind"]
+        if k in counts:
+            counts[k] += 1
+
+    empty = len(rows) == 0
+    message = None
+    if empty and kind_l == "all" and not q_l and min_score is None:
+        message = (
+            "No inventory events on the graph yet. "
+            "Run ShadowsEye (`sentinel eye run`) against an owned/scoped target — "
+            "this screen never fabricates assets."
+        )
+    elif empty:
+        message = "No assets match the current filters."
+
+    return {
+        "program_id": program_id,
+        "kind": kind_l,
+        "q": q,
+        "min_score": min_score,
+        "count": len(rows),
+        "counts": counts,
+        "assets": rows,
+        "empty": empty,
+        "message": message,
+    }
+
+
+def _flatten_watch_diffs(diffs: dict[str, Any]) -> list[dict[str, Any]]:
+    """Turn watch diff buckets into ranked delta rows."""
+    from shadowseye.ranker import score_asset, score_hostname
+
+    out: list[dict[str, Any]] = []
+
+    def _add(kind: str, change: str, name: str, extra: dict[str, Any] | None = None) -> None:
+        if kind in ("dns", "domain") or (kind == "http"):
+            score, reasons = score_hostname(name.split("://")[-1].split("/")[0] if "://" in name else name)
+        elif kind == "port" and extra and extra.get("host"):
+            score, reasons = score_hostname(str(extra["host"]))
+        else:
+            score, reasons = score_asset({"key": name, **(extra or {})})
+        # Prefer additions slightly for ranking visibility
+        if change == "added":
+            score = float(score) + 2.0
+            reasons = list(reasons) + ["delta:added"]
+        else:
+            reasons = list(reasons) + ["delta:removed"]
+        out.append(
+            {
+                "kind": kind,
+                "change": change,
+                "name": name,
+                "score": round(float(score), 2),
+                "reasons": reasons,
+                **(extra or {}),
+            }
+        )
+
+    for change in ("added", "removed"):
+        for name in diffs.get("dns_names", {}).get(change) or []:
+            _add("dns", change, str(name))
+        for row in diffs.get("ports", {}).get(change) or []:
+            if isinstance(row, dict):
+                host = str(row.get("host") or "")
+                try:
+                    port = int(row.get("port"))
+                except (TypeError, ValueError):
+                    continue
+                _add("port", change, f"{host}:{port}", {"host": host, "port": port})
+            else:
+                _add("port", change, str(row))
+        for url in diffs.get("http", {}).get(change) or []:
+            _add("http", change, str(url))
+        for tech in diffs.get("tech", {}).get(change) or []:
+            _add("tech", change, str(tech), {"tech": str(tech)})
+
+    out.sort(key=lambda r: (-float(r.get("score") or 0), r.get("change") or "", r.get("name") or ""))
+    return out
+
+
+def changes_payload(program_id: str, *, window: str = "24h") -> dict[str, Any]:
+    """
+    Interestingness-ranked watch deltas for 24h / 7d / latest-vs-previous.
+
+    Missing runs/ store → honest empty + message (never invent diffs).
+    """
+    from shadowseye.watch import diff_snapshots, load_latest_snapshot, runs_dir
+    from sentinel_core import program_dir
+
+    root = program_dir(program_id)
+    if not root.is_dir():
+        raise FileNotFoundError(
+            f"program {program_id!r} not found; run: sentinel program init {program_id}"
+        )
+
+    delta = _window_to_timedelta(window)
+    window_l = (window or "24h").strip().lower()
+    if window_l in ("1d", "day", "last_24h"):
+        window_l = "24h"
+    elif window_l in ("week", "last_7d"):
+        window_l = "7d"
+    elif window_l in ("last", "prev", "previous"):
+        window_l = "latest"
+
+    runs = runs_dir(root)
+    latest_path = runs / "latest.json"
+    history = _load_watch_history(root)
+    latest = load_latest_snapshot(root)
+
+    empty_base = {
+        "program_id": program_id,
+        "window": window_l,
+        "count": 0,
+        "deltas": [],
+        "empty": True,
+        "diffs": None,
+        "baseline_ts": None,
+        "current_ts": (latest or {}).get("ts") if latest else None,
+        "history_count": len(history),
+        "store_path": str(runs),
+    }
+
+    if not latest_path.is_file() and not history:
+        return {
+            **empty_base,
+            "message": (
+                "No watch store yet (runs/latest.json missing). "
+                "Run ShadowsEye with --watch to persist snapshots — "
+                "Changes never invents diffs."
+            ),
+        }
+
+    if latest is None:
+        return {
+            **empty_base,
+            "message": "Watch store unreadable or empty.",
+        }
+
+    baseline: dict[str, Any] | None = None
+    note = None
+    now = datetime.now(timezone.utc)
+
+    if delta is None:
+        # latest vs previous in history
+        if len(history) < 2:
+            return {
+                **empty_base,
+                "current_ts": latest.get("ts"),
+                "message": (
+                    "Only one watch snapshot on disk — need a prior run to diff. "
+                    "Re-run eye with --watch after the surface changes."
+                ),
+            }
+        baseline = history[1]
+    else:
+        cutoff = now - delta
+        # Prefer the newest snapshot at or before cutoff
+        candidates = []
+        for snap in history:
+            ts = _parse_iso_ts(snap.get("ts"))
+            if ts is None:
+                continue
+            if ts <= cutoff:
+                candidates.append(snap)
+        if candidates:
+            # history is newest-first; first candidate that is <= cutoff is newest such
+            baseline = candidates[0]
+        else:
+            # No snapshot old enough — honest empty for this window
+            return {
+                **empty_base,
+                "current_ts": latest.get("ts"),
+                "message": (
+                    f"No watch snapshot older than {window_l} "
+                    f"(cutoff {cutoff.isoformat()}). "
+                    "Older history will unlock this window; "
+                    "try window=latest for previous-run diff."
+                ),
+            }
+
+    diffs = diff_snapshots(baseline, latest)
+    deltas = _flatten_watch_diffs(diffs)
+    empty = len(deltas) == 0
+    if empty:
+        note = (
+            f"No added/removed deltas vs baseline ({baseline.get('ts')}) "
+            f"for window={window_l}."
+        )
+
+    return {
+        "program_id": program_id,
+        "window": window_l,
+        "count": len(deltas),
+        "deltas": deltas,
+        "empty": empty,
+        "message": note,
+        "diffs": diffs,
+        "baseline_ts": baseline.get("ts") if baseline else None,
+        "current_ts": latest.get("ts"),
+        "history_count": len(history),
+        "store_path": str(runs),
+        "first_run": bool(diffs.get("first_run")),
+    }
+
+
+def modules_payload() -> dict[str, Any]:
+    """
+    Read-only module/pack catalog from on-disk hunt pack manifests.
+
+    No install/publish — Phase C freeze (12 packs).
+    """
+    from gungnir.packs import list_pack_manifests
+
+    packs = list_pack_manifests()
+    modules: list[dict[str, Any]] = []
+    for m in packs:
+        modules.append(
+            {
+                "id": m.id,
+                "type": "hunt_pack",
+                "class": m.pack_class,
+                "version": m.version,
+                "description": m.description,
+                "needs_roles": m.needs_roles,
+                "noise_class": m.noise_class,
+                "consumes": list(m.consumes),
+                "emits": list(m.emits),
+                "installable": False,
+                "status": "bundled",
+            }
+        )
+    modules.sort(key=lambda r: r["id"])
+    return {
+        "modules": modules,
+        "count": len(modules),
+        "pack_count": len(modules),
+        "installable": False,
+        "message": (
+            "Read-only catalog of bundled hunt packs (Phase C freeze: 12). "
+            "Install/publish is not available in D2."
+        ),
+    }
+
+
+
 _MUTATING_PREFIXES = (
     "/api/pack/run",
     "/api/pack/stop",
@@ -1030,6 +1549,9 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/packs":
                 self._send_json(200, packs_payload())
                 return
+            if path == "/api/modules":
+                self._send_json(200, modules_payload())
+                return
             if path == "/api/auth/status":
                 self._send_json(200, auth_status())
                 return
@@ -1039,7 +1561,7 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                     {
                         "ok": True,
                         "service": "sentinel-ui",
-                        "phase": "D1",
+                        "phase": "D2",
                         "default_bind": DEFAULT_UI_BIND,
                         "default_port": DEFAULT_UI_PORT,
                     },
@@ -1084,6 +1606,36 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             ):
                 self._send_json(200, role_status_payload(parts[2]))
                 return
+
+            # /api/programs/<id>/assets
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "assets"
+            ):
+                pid = parts[2]
+                kind = (qs.get("kind") or ["all"])[0]
+                q = (qs.get("q") or [""])[0]
+                min_raw = (qs.get("min_score") or [None])[0]
+                min_score = float(min_raw) if min_raw not in (None, "") else None
+                self._send_json(
+                    200,
+                    assets_payload(pid, kind=kind, q=q, min_score=min_score),
+                )
+                return
+            # /api/programs/<id>/changes
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "changes"
+            ):
+                pid = parts[2]
+                window = (qs.get("window") or ["24h"])[0]
+                self._send_json(200, changes_payload(pid, window=window))
+                return
+
             # /api/programs/<id>/report
             if (
                 len(parts) == 4
@@ -1115,6 +1667,8 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": f"unknown API route {path}"})
         except FileNotFoundError as exc:
             self._send_json(404, {"ok": False, "error": str(exc)})
+        except ValueError as exc:
+            self._send_json(400, {"ok": False, "error": str(exc)})
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()
             self._send_json(500, {"ok": False, "error": str(exc)})
@@ -1177,7 +1731,7 @@ def serve_ui(
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "D1",
+        "phase": "D2",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
     print(f"Sentinel UI → {url}", flush=True)
@@ -1203,6 +1757,9 @@ __all__ = [
     "is_loopback_bind",
     "pack_run_action",
     "packs_payload",
+    "modules_payload",
+    "changes_payload",
+    "assets_payload",
     "programs_payload",
     "report_payload",
     "resolve_ui_static_root",

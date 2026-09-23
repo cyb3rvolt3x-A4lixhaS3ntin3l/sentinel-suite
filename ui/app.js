@@ -1,4 +1,4 @@
-/* Sentinel Suite Phase D1 — tiny SPA (no build step). */
+/* Sentinel Suite Phase D2 — tiny SPA (no build step). */
 (function () {
   const $ = (sel) => document.querySelector(sel);
   const TOKEN_KEY = "sentinel_ui_token";
@@ -49,6 +49,9 @@
     if (name === "reports") syncReportSelects();
     if (name === "auth") refreshAuthStatus();
     if (name === "findings" && $("#findings-program").value) loadFindings();
+    if (name === "assets") loadAssets();
+    if (name === "changes") loadChanges();
+    if (name === "modules") loadModules();
   }
 
   document.querySelectorAll("nav button.nav").forEach((btn) => {
@@ -87,6 +90,8 @@
       "findings-program",
       "scope-program",
       "report-program",
+      "assets-program",
+      "changes-program",
     ];
     const list = $("#program-list");
     list.innerHTML = "";
@@ -710,4 +715,160 @@
     .catch((e) => {
       $("#doctor-out").textContent = "Failed to load: " + e.message;
     });
+
+  async function loadAssets() {
+    const pid = $("#assets-program").value;
+    const kind = $("#assets-kind").value;
+    const q = $("#assets-q").value.trim();
+    const box = $("#assets-table");
+    const meta = $("#assets-meta");
+    if (!pid) {
+      box.innerHTML = '<p class="empty-state">Select a program.</p>';
+      meta.textContent = "";
+      return;
+    }
+    box.innerHTML = '<p class="muted">Loading…</p>';
+    try {
+      const qs = new URLSearchParams({ kind, q });
+      const data = await api("/api/programs/" + encodeURIComponent(pid) + "/assets?" + qs);
+      meta.textContent =
+        (data.count || 0) + " assets" +
+        (data.counts
+          ? " · domain " + data.counts.domain +
+            " · dns " + data.counts.dns +
+            " · ip " + data.counts.ip +
+            " · port " + data.counts.port +
+            " · url " + data.counts.url
+          : "");
+      if (data.empty) {
+        box.innerHTML = '<p class="empty-state">' + esc(data.message || "No assets.") + "</p>";
+        return;
+      }
+      let html = "<table><thead><tr><th>Score</th><th>Kind</th><th>Name</th><th>Reasons</th><th>First seen</th></tr></thead><tbody>";
+      for (const a of data.assets || []) {
+        html +=
+          "<tr><td><span class='score-pill'>" +
+          esc(a.score) +
+          "</span></td><td>" +
+          esc(a.kind) +
+          "</td><td class='mono'>" +
+          esc(a.name) +
+          "</td><td class='muted small'>" +
+          esc((a.reasons || []).join(", ")) +
+          "</td><td class='muted small'>" +
+          esc(a.first_seen || "") +
+          "</td></tr>";
+      }
+      html += "</tbody></table>";
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
+    }
+  }
+
+  $("#assets-refresh").addEventListener("click", loadAssets);
+  $("#assets-kind").addEventListener("change", loadAssets);
+  $("#assets-program").addEventListener("change", loadAssets);
+  $("#assets-q").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loadAssets();
+  });
+
+  async function loadChanges() {
+    const pid = $("#changes-program").value;
+    const window_ = $("#changes-window").value;
+    const box = $("#changes-table");
+    const meta = $("#changes-meta");
+    if (!pid) {
+      box.innerHTML = '<p class="empty-state">Select a program.</p>';
+      meta.textContent = "";
+      return;
+    }
+    box.innerHTML = '<p class="muted">Loading…</p>';
+    try {
+      const qs = new URLSearchParams({ window: window_ });
+      const data = await api(
+        "/api/programs/" + encodeURIComponent(pid) + "/changes?" + qs
+      );
+      meta.textContent =
+        "window=" +
+        esc(data.window) +
+        " · " +
+        (data.count || 0) +
+        " deltas" +
+        (data.baseline_ts ? " · baseline " + data.baseline_ts : "") +
+        (data.current_ts ? " · current " + data.current_ts : "");
+      if (data.empty) {
+        box.innerHTML =
+          '<p class="empty-state">' + esc(data.message || "No changes.") + "</p>";
+        return;
+      }
+      let html =
+        "<table><thead><tr><th>Score</th><th>Change</th><th>Kind</th><th>Name</th><th>Reasons</th></tr></thead><tbody>";
+      for (const d of data.deltas || []) {
+        const cls = d.change === "added" ? "delta-added" : "delta-removed";
+        html +=
+          "<tr><td><span class='score-pill'>" +
+          esc(d.score) +
+          "</span></td><td class='" +
+          cls +
+          "'>" +
+          esc(d.change) +
+          "</td><td>" +
+          esc(d.kind) +
+          "</td><td class='mono'>" +
+          esc(d.name) +
+          "</td><td class='muted small'>" +
+          esc((d.reasons || []).join(", ")) +
+          "</td></tr>";
+      }
+      html += "</tbody></table>";
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
+    }
+  }
+
+  $("#changes-refresh").addEventListener("click", loadChanges);
+  $("#changes-window").addEventListener("change", loadChanges);
+  $("#changes-program").addEventListener("change", loadChanges);
+
+  async function loadModules() {
+    const box = $("#modules-table");
+    const meta = $("#modules-meta");
+    box.innerHTML = '<p class="muted">Loading…</p>';
+    try {
+      const data = await api("/api/modules");
+      meta.textContent =
+        (data.count || 0) +
+        " modules · installable=" +
+        String(data.installable) +
+        (data.message ? " — " + data.message : "");
+      let html =
+        "<table><thead><tr><th>Id</th><th>Type</th><th>Class</th><th>Roles</th><th>Noise</th><th>Version</th><th>Description</th></tr></thead><tbody>";
+      for (const m of data.modules || []) {
+        html +=
+          "<tr><td class='mono'>" +
+          esc(m.id) +
+          "</td><td>" +
+          esc(m.type) +
+          "</td><td>" +
+          esc(m.class) +
+          "</td><td>" +
+          esc(m.needs_roles) +
+          "</td><td>" +
+          esc(m.noise_class) +
+          "</td><td>" +
+          esc(m.version) +
+          "</td><td class='muted small'>" +
+          esc(m.description || "") +
+          "</td></tr>";
+      }
+      html += "</tbody></table>";
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
+    }
+  }
+
+
 })();

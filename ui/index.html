@@ -10,7 +10,7 @@
   <header class="top">
     <div class="brand">
       <strong>Sentinel Suite</strong>
-      <span class="muted">local UI · Phase D1</span>
+      <span class="muted">local UI · Phase D2</span>
     </div>
     <nav>
       <button type="button" data-view="home" class="nav active">Home</button>
@@ -20,6 +20,9 @@
       <button type="button" data-view="scope" class="nav">Scope</button>
       <button type="button" data-view="findings" class="nav">Findings</button>
       <button type="button" data-view="reports" class="nav">Reports</button>
+      <button type="button" data-view="assets" class="nav">Assets</button>
+      <button type="button" data-view="changes" class="nav">Changes</button>
+      <button type="button" data-view="modules" class="nav">Modules</button>
       <button type="button" data-view="auth" class="nav">Auth</button>
     </nav>
     <div class="bind-pill" title="Loopback-only by default">127.0.0.1:8888</div>
@@ -225,6 +228,69 @@
       <pre id="report-out" class="mono card"></pre>
     </section>
 
+
+    <section id="view-assets" class="view hidden">
+      <h1>Assets</h1>
+      <p class="lede">
+        Domains / DNS / IPs / ports / URLs from the program <strong>graph</strong>
+        (ShadowsEye inventory). Sorted by interestingness when scored. Empty graph →
+        honest empty state — never fabricated.
+      </p>
+      <div class="row">
+        <label>Program
+          <select id="assets-program"></select>
+        </label>
+        <label>Kind
+          <select id="assets-kind">
+            <option value="all">all</option>
+            <option value="domain">domain</option>
+            <option value="dns">dns</option>
+            <option value="ip">ip</option>
+            <option value="port">port</option>
+            <option value="url">url</option>
+          </select>
+        </label>
+        <label>Filter
+          <input id="assets-q" placeholder="substring…" />
+        </label>
+        <button type="button" id="assets-refresh">Refresh</button>
+      </div>
+      <p id="assets-meta" class="muted small"></p>
+      <div id="assets-table" class="card"></div>
+    </section>
+
+    <section id="view-changes" class="view hidden">
+      <h1>Changes</h1>
+      <p class="lede">
+        Watch diffs from Phase B Eye <code>runs/</code> snapshots — ranked by interestingness.
+        Windows: last 24h, 7d, or latest-vs-previous. Missing store → honest empty.
+      </p>
+      <div class="row">
+        <label>Program
+          <select id="changes-program"></select>
+        </label>
+        <label>Window
+          <select id="changes-window">
+            <option value="24h">last 24h</option>
+            <option value="7d">last 7d</option>
+            <option value="latest">latest vs previous</option>
+          </select>
+        </label>
+        <button type="button" id="changes-refresh">Refresh</button>
+      </div>
+      <p id="changes-meta" class="muted small"></p>
+      <div id="changes-table" class="card"></div>
+    </section>
+
+    <section id="view-modules" class="view hidden">
+      <h1>Modules</h1>
+      <p class="lede">
+        Read-only catalog of bundled hunt packs (Phase C freeze: 12). No install/publish in D2.
+      </p>
+      <p id="modules-meta" class="muted small"></p>
+      <div id="modules-table" class="card"></div>
+    </section>
+
     <section id="view-auth" class="view hidden">
       <h1>Local auth (optional)</h1>
       <p class="lede">
@@ -256,7 +322,7 @@
   <datalist id="program-list"></datalist>
 
   <footer class="foot">
-    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D1</span>
+    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D2</span>
   </footer>
   <script src="/app.js"></script>
 </body>
