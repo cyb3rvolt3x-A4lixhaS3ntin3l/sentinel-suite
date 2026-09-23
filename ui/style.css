@@ -74,3 +74,26 @@ th { color: var(--muted); font-weight: 600; }
   color: var(--muted); font-size: 0.75rem; text-align: center;
 }
 code { font-family: var(--mono); font-size: 0.85em; }
+
+/* D1 additions */
+.grid.two { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.small { font-size: 0.78rem; }
+.log-dense {
+  max-height: 28rem; overflow: auto; min-height: 12rem;
+  background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem;
+}
+.mono-input {
+  width: 100%; font-family: var(--mono); font-size: 0.8rem;
+  background: #0b1018; color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.5rem; resize: vertical;
+}
+button.danger {
+  background: #3a1520; border-color: #6b2a3a; color: #ffb4b4;
+}
+.auth-banner {
+  background: #2a2110; border-bottom: 1px solid #5a4a20; color: var(--warn);
+  padding: 0.55rem 1.25rem; font-size: 0.85rem;
+}
+.auth-banner button {
+  margin-left: 0.5rem; padding: 0.2rem 0.5rem; font-size: 0.8rem;
+}

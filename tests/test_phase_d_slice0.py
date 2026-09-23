@@ -165,6 +165,11 @@ def _http_json(url: str, data: dict | None = None, method: str = "GET") -> tuple
 def ui_server(tmp_path, monkeypatch):
     monkeypatch.setenv("SENTINEL_HOME", str(tmp_path))
     create_program("uidemo")
+    # D1 auth: lab skip so D0 pack-run smoke still mutates without password
+    from sentinel_cli.ui_auth import clear_sessions, setup_auth
+
+    clear_sessions()
+    setup_auth(action="skip_lab")
     root = resolve_ui_static_root()
     handler = make_handler(root)
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)

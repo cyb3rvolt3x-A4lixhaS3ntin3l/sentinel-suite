@@ -10,17 +10,22 @@
   <header class="top">
     <div class="brand">
       <strong>Sentinel Suite</strong>
-      <span class="muted">local UI · Phase D0</span>
+      <span class="muted">local UI · Phase D1</span>
     </div>
     <nav>
       <button type="button" data-view="home" class="nav active">Home</button>
       <button type="button" data-view="programs" class="nav">Programs</button>
       <button type="button" data-view="packs" class="nav">Packs</button>
+      <button type="button" data-view="hunt" class="nav">Hunt</button>
+      <button type="button" data-view="scope" class="nav">Scope</button>
       <button type="button" data-view="findings" class="nav">Findings</button>
-      <button type="button" data-view="run" class="nav">Run pack</button>
+      <button type="button" data-view="reports" class="nav">Reports</button>
+      <button type="button" data-view="auth" class="nav">Auth</button>
     </nav>
     <div class="bind-pill" title="Loopback-only by default">127.0.0.1:8888</div>
   </header>
+
+  <div id="auth-banner" class="auth-banner hidden"></div>
 
   <main>
     <section id="view-home" class="view">
@@ -49,12 +54,115 @@
 
     <section id="view-packs" class="view hidden">
       <h1>Hunt packs</h1>
-      <p class="lede">Phase C frozen — 12 packs. Read-only catalog.</p>
+      <p class="lede">Phase C frozen — 12 packs. Read-only catalog (UI wiring only).</p>
       <div id="packs-table" class="card"></div>
+    </section>
+
+    <section id="view-hunt" class="view hidden">
+      <h1>Hunt (gated)</h1>
+      <p class="lede warn">
+        No silent live runs. Acknowledge ownership (<code>i_own_this</code>).
+        Lab packs may need <code>i_understand_lab</code>. Findings stay needs_human until confirm-finding.
+        <strong>Hard-kill Stop</strong> cancels in-flight UI-triggered runs.
+      </p>
+      <div class="grid two">
+        <form id="run-form" class="card form">
+          <label>Program id
+            <input name="program_id" id="run-program" list="program-list" required placeholder="demo" />
+          </label>
+          <label>Pack
+            <select name="pack_id" id="run-pack" required></select>
+          </label>
+          <p id="pack-meta" class="muted small"></p>
+          <label>Scope path (optional if i_own_this — program scope.txt used when present)
+            <input name="scope_path" id="run-scope-path" placeholder="/path/to/scope.txt or leave blank" />
+          </label>
+          <label>Role A path (optional override)
+            <input name="role_a_path" id="run-role-a" placeholder="…/programs/&lt;id&gt;/roles/a.json" />
+          </label>
+          <label>Role B path (packs with needs_roles≥2)
+            <input name="role_b_path" id="run-role-b" placeholder="…/programs/&lt;id&gt;/roles/b.json" />
+          </label>
+          <label class="check">
+            <input type="checkbox" name="i_own_this" id="run-own" />
+            I own / am authorized for this target (<code>--i-own-this</code>)
+          </label>
+          <label class="check">
+            <input type="checkbox" name="i_understand_lab" id="run-lab" />
+            I understand lab risks (<code>--i-understand-lab</code>)
+          </label>
+          <label class="check">
+            <input type="checkbox" id="run-async" checked />
+            Async run (poll denser live log + Stop)
+          </label>
+          <div class="row">
+            <button type="submit">Run pack</button>
+            <button type="button" id="run-stop" class="danger">Stop run</button>
+            <button type="button" id="run-clear" class="ghost">Clear log</button>
+          </div>
+        </form>
+        <div class="card">
+          <h2>Live run log</h2>
+          <p id="run-status" class="muted small">Idle</p>
+          <pre id="run-out" class="mono log-dense"></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-scope" class="view hidden">
+      <h1>Scope</h1>
+      <p class="lede">
+        View/edit <code>scope.txt</code>. Out-of-scope targets are <strong>hard-killed</strong>
+        (<code>ScopeDenied</code>). Brief import supports dry-run summary first.
+      </p>
+      <div class="row">
+        <label>Program
+          <select id="scope-program"></select>
+        </label>
+        <button type="button" id="scope-reload">Reload</button>
+        <button type="button" id="scope-save">Save scope</button>
+        <button type="button" id="scope-dry" class="ghost">Dry-run parse</button>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h2>scope.txt</h2>
+          <p id="scope-meta" class="muted small"></p>
+          <textarea id="scope-text" rows="16" class="mono-input" spellcheck="false"></textarea>
+        </div>
+        <div class="card">
+          <h2>Hard-kill probe</h2>
+          <p class="muted small">Probe a host against current saved scope (not unsaved editor text).</p>
+          <div class="row">
+            <label>Target host
+              <input id="hk-target" placeholder="api.example.com" />
+            </label>
+            <button type="button" id="hk-probe">Probe</button>
+          </div>
+          <pre id="hk-out" class="mono"></pre>
+          <h2>Brief import</h2>
+          <textarea id="brief-text" rows="8" class="mono-input" placeholder="Paste H1 / Bugcrowd-style brief…"></textarea>
+          <div class="row">
+            <label>Platform
+              <select id="brief-platform">
+                <option value="auto">auto</option>
+                <option value="h1">h1</option>
+                <option value="bugcrowd">bugcrowd</option>
+                <option value="generic">generic</option>
+                <option value="raw">raw</option>
+              </select>
+            </label>
+            <button type="button" id="brief-dry">Import dry-run</button>
+            <button type="button" id="brief-write" class="ghost">Write scope</button>
+          </div>
+          <pre id="brief-out" class="mono"></pre>
+        </div>
+      </div>
+      <pre id="scope-out" class="mono card hidden"></pre>
     </section>
 
     <section id="view-findings" class="view hidden">
       <h1>Findings</h1>
+      <p class="lede warn">Human confirm only — packs never auto-VERIFIED. Note required.</p>
       <div class="row">
         <label>Program
           <select id="findings-program"></select>
@@ -65,48 +173,90 @@
             <option value="needs_human">needs_human / pending</option>
             <option value="confirmed">confirmed</option>
             <option value="unverified">unverified</option>
+            <option value="not_reproduced">not_reproduced</option>
+            <option value="skipped">skipped</option>
+            <option value="rejected">rejected</option>
           </select>
         </label>
         <button type="button" id="findings-refresh">Refresh</button>
       </div>
       <div id="findings-table" class="card"></div>
+      <form id="confirm-form" class="card form">
+        <h2>Confirm finding (human gate)</h2>
+        <label>Finding id
+          <input id="confirm-id" required placeholder="event id from table" />
+        </label>
+        <label>Status
+          <select id="confirm-status">
+            <option value="confirmed">confirmed</option>
+            <option value="not_reproduced">not_reproduced</option>
+            <option value="unverified">unverified</option>
+            <option value="skipped">skipped</option>
+            <option value="rejected">rejected</option>
+            <option value="needs_human">needs_human (re-queue)</option>
+          </select>
+        </label>
+        <label>Note (required)
+          <textarea id="confirm-note" rows="3" required placeholder="Why this status — human review note"></textarea>
+        </label>
+        <label>Who (optional)
+          <input id="confirm-who" placeholder="hunter handle" />
+        </label>
+        <button type="submit">Submit confirm-finding</button>
+        <pre id="confirm-out" class="mono"></pre>
+      </form>
     </section>
 
-    <section id="view-run" class="view hidden">
-      <h1>Run pack (gated)</h1>
-      <p class="lede warn">
-        No silent live runs. You must acknowledge ownership (<code>i_own_this</code>).
-        Lab packs may also need <code>i_understand_lab</code>. Findings stay needs_human until confirm-finding.
-      </p>
-      <form id="run-form" class="card form">
-        <label>Program id
-          <input name="program_id" id="run-program" required placeholder="demo" />
+    <section id="view-reports" class="view hidden">
+      <h1>Reports</h1>
+      <p class="lede">Markdown export via Phase C report engine (per pack or all-packs).</p>
+      <div class="row">
+        <label>Program
+          <select id="report-program"></select>
         </label>
         <label>Pack
-          <select name="pack_id" id="run-pack" required></select>
+          <select id="report-pack">
+            <option value="">(all packs)</option>
+          </select>
         </label>
-        <label>Scope path (optional if i_own_this)
-          <input name="scope_path" placeholder="/path/to/scope.txt" />
-        </label>
-        <label class="check">
-          <input type="checkbox" name="i_own_this" id="run-own" />
-          I own / am authorized for this target (<code>--i-own-this</code>)
-        </label>
-        <label class="check">
-          <input type="checkbox" name="i_understand_lab" id="run-lab" />
-          I understand lab risks (<code>--i-understand-lab</code>) — required for some packs beyond fixtures
-        </label>
-        <div class="row">
-          <button type="submit">Run pack</button>
-          <button type="button" id="run-clear" class="ghost">Clear result</button>
-        </div>
-      </form>
-      <pre id="run-out" class="mono card hidden"></pre>
+        <button type="button" id="report-load">Load markdown</button>
+        <button type="button" id="report-download" class="ghost">Download .md</button>
+      </div>
+      <pre id="report-out" class="mono card"></pre>
+    </section>
+
+    <section id="view-auth" class="view hidden">
+      <h1>Local auth (optional)</h1>
+      <p class="lede">
+        Loopback is the primary fence. Optional bcrypt password under
+        <code>SENTINEL_HOME/ui_auth.json</code>, or skip for lab.
+      </p>
+      <div class="grid two">
+        <article class="card">
+          <h2>Status</h2>
+          <pre id="auth-status-out" class="mono">Loading…</pre>
+        </article>
+        <article class="card form">
+          <h2>First-run / login</h2>
+          <label>Password (min 8, set-password)
+            <input type="password" id="auth-password" autocomplete="new-password" />
+          </label>
+          <div class="row">
+            <button type="button" id="auth-set">Set password</button>
+            <button type="button" id="auth-skip" class="ghost">Skip for lab</button>
+            <button type="button" id="auth-login">Login</button>
+            <button type="button" id="auth-logout" class="ghost">Logout</button>
+          </div>
+          <pre id="auth-action-out" class="mono"></pre>
+        </article>
+      </div>
     </section>
   </main>
 
+  <datalist id="program-list"></datalist>
+
   <footer class="foot">
-    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden</span>
+    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D1</span>
   </footer>
   <script src="/app.js"></script>
 </body>

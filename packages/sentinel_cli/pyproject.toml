@@ -12,6 +12,7 @@ dependencies = [
   "sentinel_core>=0.1.0",
   "shadowseye>=0.1.0",
   "gungnir>=0.1.0",
+  "bcrypt>=4.0.0",
 ]
 
 [project.scripts]
