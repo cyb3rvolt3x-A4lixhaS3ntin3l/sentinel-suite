@@ -52,6 +52,7 @@
     if (name === "assets") loadAssets();
     if (name === "changes") loadChanges();
     if (name === "modules") loadModules();
+    if (name === "labs") loadLabs();
     if (name === "coach") loadCoach();
     if (name === "settings") loadSettings();
     if (name === "osint") loadOsint();
@@ -99,6 +100,7 @@
       "assets-program",
       "changes-program",
       "coach-program",
+      "labs-program",
     ];
     const list = $("#program-list");
     list.innerHTML = "";
@@ -906,7 +908,9 @@
         " · findings=" +
         (ec.findings_total || 0) +
         " · llm=" +
-        String(!!data.llm);
+        String(!!data.llm) +
+        " · lab_bound=" +
+        String(!!data.lab_bound);
       if (!(data.hints || []).length) {
         box.innerHTML = '<p class="empty-state">No hints.</p>';
         return;
@@ -1343,6 +1347,238 @@
     }
   });
 
+
+  // --- Phase E0: Open Lab ---
+  async function loadLabsCatalog() {
+    const sel = $("#labs-catalog");
+    const meta = $("#labs-catalog-meta");
+    const docs = $("#labs-start-docs");
+    try {
+      const data = await api("/api/labs");
+      sel.innerHTML = "";
+      for (const L of data.labs || []) {
+        const opt = document.createElement("option");
+        opt.value = L.lab_id;
+        opt.textContent = L.name + " (" + L.lab_id + ")";
+        opt.dataset.defaultProgram = L.default_program_id || "";
+        opt.dataset.base = L.default_base_url || "";
+        sel.appendChild(opt);
+      }
+      meta.textContent = JSON.stringify(
+        { count: data.count, phase: data.phase, note: data.note },
+        null,
+        2
+      );
+      if (sel.options.length) {
+        const o = sel.options[sel.selectedIndex];
+        if (!$("#labs-program-id").value) {
+          $("#labs-program-id").value = o.dataset.defaultProgram || "lab-juice-shop";
+        }
+        // fetch full start docs via open status only after open; show catalog disclaimer
+        docs.textContent =
+          "Select Open Lab to write LAB_START.md into the program.\n" +
+          "Default base: " +
+          (o.dataset.base || "http://127.0.0.1:3000") +
+          "\n" +
+          "docker run --rm -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop";
+      }
+    } catch (e) {
+      meta.textContent = String(e.message || e);
+    }
+  }
+
+  async function loadLabs() {
+    await loadLabsCatalog();
+    const sel = $("#labs-program");
+    if (sel && !sel.options.length) {
+      try {
+        const progs = await api("/api/programs");
+        fillProgramSelects(progs.programs || []);
+      } catch { /* ignore */ }
+    }
+    if ($("#labs-program").value) await refreshLabStatus();
+  }
+
+  async function refreshLabStatus() {
+    const pid = $("#labs-program").value;
+    const box = $("#labs-objectives");
+    const meta = $("#labs-status-meta");
+    if (!pid) {
+      box.innerHTML = '<p class="empty-state">Open a lab or select a lab-bound program.</p>';
+      meta.textContent = "";
+      return;
+    }
+    box.innerHTML = '<p class="muted">Loading…</p>';
+    try {
+      const data = await api("/api/programs/" + encodeURIComponent(pid) + "/lab");
+      const c = data.counts || {};
+      meta.textContent =
+        data.lab_id +
+        " @ " +
+        data.base_url +
+        " · attempted=" +
+        (c.attempted || 0) +
+        "/" +
+        (c.objectives || 0) +
+        " · hints_unlocked=" +
+        (c.hints_unlocked || 0) +
+        " · completed=" +
+        (c.completed || 0) +
+        " · invent_findings=" +
+        String(!!data.invent_findings);
+      if (data.start_docs) $("#labs-start-docs").textContent = data.start_docs;
+      let html = "";
+      for (const o of data.objectives || []) {
+        html +=
+          '<article class="coach-card"><span class="kind">' +
+          esc(o.category) +
+          "</span><h3>" +
+          esc(o.id) +
+          " — " +
+          esc(o.title) +
+          "</h3><p class="body">" +
+          esc(o.summary || "") +
+          "</p><div class="evidence">" +
+          "attempted=" +
+          o.attempted +
+          " · hints_unlocked=" +
+          o.hints_unlocked +
+          " · completed=" +
+          o.completed +
+          " · packs=" +
+          esc((o.suggested_packs || []).join(",") || "(none)") +
+          "</div>";
+        if (o.hints_unlocked && (o.hints_preview || []).length) {
+          html += "<ol>";
+          for (const h of o.hints_preview) {
+            html += "<li>" + esc(h.body || h) + "</li>";
+          }
+          html += "</ol>";
+        } else {
+          html +=
+            '<p class="muted small">Hints locked — record an attempt to unlock.</p>';
+        }
+        html +=
+          '<button type="button" class="ghost labs-pick" data-oid="' +
+          esc(o.id) +
+          '">Use objective</button></article>';
+      }
+      box.innerHTML = html || '<p class="empty-state">No objectives.</p>';
+      box.querySelectorAll(".labs-pick").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          $("#labs-objective-id").value = btn.dataset.oid;
+        });
+      });
+    } catch (e) {
+      box.innerHTML =
+        '<p class="empty-state">' +
+        esc(e.message || e) +
+        " — open a lab first.</p>";
+    }
+  }
+
+  $("#labs-refresh-catalog").addEventListener("click", loadLabsCatalog);
+  $("#labs-refresh").addEventListener("click", refreshLabStatus);
+  $("#labs-program").addEventListener("change", refreshLabStatus);
+  $("#labs-catalog").addEventListener("change", () => {
+    const o = $("#labs-catalog").options[$("#labs-catalog").selectedIndex];
+    if (o) $("#labs-program-id").value = o.dataset.defaultProgram || "";
+  });
+
+  $("#labs-open").addEventListener("click", async () => {
+    const lab_id = $("#labs-catalog").value;
+    const program_id = ($("#labs-program-id").value || "").trim();
+    try {
+      const data = await api("/api/labs/open", {
+        method: "POST",
+        body: JSON.stringify({
+          lab_id,
+          program_id: program_id || undefined,
+        }),
+      });
+      const result = data.result || data;
+      $("#labs-hints-out").textContent = JSON.stringify(
+        { opened: true, program_id: result.program_id, counts: result.counts },
+        null,
+        2
+      );
+      if (result.start_docs) $("#labs-start-docs").textContent = result.start_docs;
+      // refresh programs + select
+      const progs = await api("/api/programs");
+      fillProgramSelects(progs.programs || []);
+      if (result.program_id) {
+        $("#labs-program").value = result.program_id;
+        if ($("#coach-program")) $("#coach-program").value = result.program_id;
+        if ($("#run-program")) $("#run-program").value = result.program_id;
+      }
+      await refreshLabStatus();
+    } catch (e) {
+      $("#labs-hints-out").textContent =
+        e.message + (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
+      if (e.code === "need_first_run" || e.code === "auth_required") showView("auth");
+    }
+  });
+
+  async function postLabAttempt(complete) {
+    const pid = $("#labs-program").value;
+    const oid = ($("#labs-objective-id").value || "").trim();
+    const note = ($("#labs-attempt-note").value || "").trim();
+    if (!pid || !oid) {
+      $("#labs-hints-out").textContent = "Select program + objective id.";
+      return;
+    }
+    try {
+      const data = await api(
+        "/api/programs/" + encodeURIComponent(pid) + "/lab/attempt",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            objective_id: oid,
+            note: note || undefined,
+            complete: !!complete,
+          }),
+        }
+      );
+      $("#labs-hints-out").textContent = JSON.stringify(data.result || data, null, 2);
+      await refreshLabStatus();
+      // show unlocked hints
+      const hints = await api(
+        "/api/programs/" +
+          encodeURIComponent(pid) +
+          "/lab/hints/" +
+          encodeURIComponent(oid)
+      );
+      $("#labs-hints-out").textContent = JSON.stringify(hints, null, 2);
+    } catch (e) {
+      $("#labs-hints-out").textContent =
+        e.message + (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
+      if (e.code === "need_first_run" || e.code === "auth_required") showView("auth");
+    }
+  }
+
+  $("#labs-attempt").addEventListener("click", () => postLabAttempt(false));
+  $("#labs-complete").addEventListener("click", () => postLabAttempt(true));
+  $("#labs-show-hints").addEventListener("click", async () => {
+    const pid = $("#labs-program").value;
+    const oid = ($("#labs-objective-id").value || "").trim();
+    if (!pid || !oid) {
+      $("#labs-hints-out").textContent = "Select program + objective id.";
+      return;
+    }
+    try {
+      const hints = await api(
+        "/api/programs/" +
+          encodeURIComponent(pid) +
+          "/lab/hints/" +
+          encodeURIComponent(oid)
+      );
+      $("#labs-hints-out").textContent = JSON.stringify(hints, null, 2);
+    } catch (e) {
+      $("#labs-hints-out").textContent = String(e.message || e);
+    }
+  });
+
+
   // Ctrl/Cmd+K command palette
   const TABS = [
     { id: "home", label: "Home", kind: "tab" },
@@ -1359,6 +1595,7 @@
     { id: "surface", label: "Surface map", kind: "tab" },
     { id: "authlab", label: "Auth lab", kind: "tab" },
     { id: "workbench", label: "Workbench", kind: "tab" },
+    { id: "labs", label: "Open Lab", kind: "tab" },
     { id: "coach", label: "Coach", kind: "tab" },
     { id: "settings", label: "Settings", kind: "tab" },
     { id: "auth", label: "Auth", kind: "tab" },

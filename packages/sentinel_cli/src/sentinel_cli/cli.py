@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui (Phase D0)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E0)."""
 
 from __future__ import annotations
 
@@ -556,6 +556,86 @@ def cmd_ui(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_lab_list(_: argparse.Namespace) -> int:
+    """List Open Lab curricula (Phase E0)."""
+    from sentinel_cli.ui_labs import labs_payload
+
+    print(json.dumps(labs_payload(), indent=2))
+    return 0
+
+
+def cmd_lab_open(args: argparse.Namespace) -> int:
+    """Open a lab → bind/create program with loopback scope (Phase E0)."""
+    from sentinel_cli.ui_labs import open_lab
+
+    try:
+        result = open_lab(
+            args.lab_id,
+            program_id=getattr(args, "program_id", None),
+            base_url=getattr(args, "base_url", None),
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2, default=str))
+    return 0
+
+
+def cmd_lab_status(args: argparse.Namespace) -> int:
+    """Show lab progress for a program."""
+    from sentinel_cli.ui_labs import lab_status_payload
+
+    try:
+        print(json.dumps(lab_status_payload(args.program_id), indent=2, default=str))
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def cmd_lab_attempt(args: argparse.Namespace) -> int:
+    """Record a lab attempt (unlocks hints). Optional --complete for human mark."""
+    from sentinel_cli.ui_labs import mark_objective_complete, record_attempt
+
+    try:
+        if getattr(args, "complete", False):
+            result = mark_objective_complete(
+                args.program_id,
+                args.objective_id,
+                note=getattr(args, "note", None),
+            )
+        else:
+            result = record_attempt(
+                args.program_id,
+                args.objective_id,
+                note=getattr(args, "note", None),
+            )
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2, default=str))
+    return 0
+
+
+def cmd_lab_hints(args: argparse.Namespace) -> int:
+    """Show hints for a lab objective (locked until attempt)."""
+    from sentinel_cli.ui_labs import hints_for_objective
+
+    try:
+        print(
+            json.dumps(
+                hints_for_objective(args.program_id, args.objective_id),
+                indent=2,
+                default=str,
+            )
+        )
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_collaborator_serve(args: argparse.Namespace) -> int:
     """Owned loopback collaborator callback listener (Phase C slice15)."""
     from gungnir.packs.ssrf_collaborator.caps import CapExceededError
@@ -1042,6 +1122,64 @@ def build_parser() -> argparse.ArgumentParser:
         help="Required to bind non-loopback (0.0.0.0 / ::). Never for cloud metadata.",
     )
     collab_serve.set_defaults(func=cmd_collaborator_serve)
+
+
+    lab = sub.add_parser(
+        "lab",
+        help=(
+            "Open Lab curricula (Phase E0): Juice Shop expected findings, "
+            "hints after attempt. Lab-only loopback defaults; no invented findings."
+        ),
+    )
+    lab_sub = lab.add_subparsers(dest="lab_cmd", required=True)
+
+    lab_list = lab_sub.add_parser("list", help="List available labs")
+    lab_list.set_defaults(func=cmd_lab_list)
+
+    lab_open = lab_sub.add_parser(
+        "open",
+        help="Open a lab (create/bind program + loopback scope + LAB_START.md)",
+    )
+    lab_open.add_argument("lab_id", help="Lab id (e.g. juice-shop)")
+    lab_open.add_argument(
+        "--program",
+        dest="program_id",
+        default=None,
+        help="Program id (default: lab default, e.g. lab-juice-shop)",
+    )
+    lab_open.add_argument(
+        "--base-url",
+        dest="base_url",
+        default=None,
+        help="Override lab base URL (default http://127.0.0.1:3000 for Juice Shop)",
+    )
+    lab_open.set_defaults(func=cmd_lab_open)
+
+    lab_status = lab_sub.add_parser("status", help="Lab progress for a program")
+    lab_status.add_argument("program_id", help="Program id bound to a lab")
+    lab_status.set_defaults(func=cmd_lab_status)
+
+    lab_attempt = lab_sub.add_parser(
+        "attempt",
+        help="Record attempt for an objective (unlocks hints); optional --complete",
+    )
+    lab_attempt.add_argument("program_id", help="Program id")
+    lab_attempt.add_argument("objective_id", help="Objective id (e.g. js-admin-section)")
+    lab_attempt.add_argument("--note", default=None, help="Optional attempt note")
+    lab_attempt.add_argument(
+        "--complete",
+        action="store_true",
+        help="Human mark complete (never auto from packs)",
+    )
+    lab_attempt.set_defaults(func=cmd_lab_attempt)
+
+    lab_hints = lab_sub.add_parser(
+        "hints",
+        help="Show hints for an objective (empty until attempt unlocks)",
+    )
+    lab_hints.add_argument("program_id", help="Program id")
+    lab_hints.add_argument("objective_id", help="Objective id")
+    lab_hints.set_defaults(func=cmd_lab_hints)
 
     ui = sub.add_parser(
         "ui",

@@ -1,4 +1,4 @@
-"""Phase D0–D4 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
+"""Phase D0–D4 + E0 Open Lab — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
 
 from __future__ import annotations
 
@@ -24,6 +24,13 @@ from sentinel_cli.ui_auth import (
     setup_auth,
 )
 from sentinel_cli.ui_coach import coach_payload
+from sentinel_cli.ui_labs import (
+    attempt_lab_action,
+    hints_for_objective,
+    lab_status_payload,
+    labs_payload,
+    open_lab_action,
+)
 from sentinel_cli.ui_d4 import (
     auth_lab_payload,
     osint_graph_payload,
@@ -1385,7 +1392,7 @@ def settings_payload(
         },
         "rates": rates,
         "rates_present": rates is not None,
-        "phase": "D4",
+        "phase": "E0",
         "license": "MIT",
         "fences": {
             "tauri": True,
@@ -1405,6 +1412,7 @@ _MUTATING_PREFIXES = (
     "/api/auth/clear",
     "/api/auth/clear-password",
     "/api/workbench/send",
+    "/api/labs/open",
 )
 
 
@@ -1421,6 +1429,11 @@ def _is_mutating_path(path: str, method: str) -> bool:
         if path == "/api/confirm-finding":
             return True
         if path in ("/api/auth/clear", "/api/auth/clear-password"):
+            return True
+        if path == "/api/labs/open":
+            return True
+        # /api/programs/<id>/lab/attempt
+        if path.endswith("/lab/attempt") or path.rstrip("/").endswith("/lab/attempt"):
             return True
     if method == "PUT":
         if path.endswith("/scope"):
@@ -1599,7 +1612,24 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(200, workbench_send(body))
                 return
 
+            if path == "/api/labs/open":
+                self._send_json(200, {"ok": True, "result": open_lab_action(body)})
+                return
+
             parts = path.strip("/").split("/")
+            # /api/programs/<id>/lab/attempt
+            if (
+                len(parts) == 5
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "lab"
+                and parts[4] == "attempt"
+            ):
+                self._send_json(
+                    200,
+                    {"ok": True, "result": attempt_lab_action(parts[2], body)},
+                )
+                return
             # /api/programs/<id>/scope/brief
             if (
                 len(parts) == 5
@@ -1666,7 +1696,7 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                     {
                         "ok": True,
                         "service": "sentinel-ui",
-                        "phase": "D4",
+                        "phase": "E0",
                         "default_bind": DEFAULT_UI_BIND,
                         "default_port": DEFAULT_UI_PORT,
                     },
@@ -1777,6 +1807,31 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(200, auth_lab_payload(parts[2]))
                 return
 
+            if path == "/api/labs":
+                self._send_json(200, labs_payload())
+                return
+
+            # /api/programs/<id>/lab
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "lab"
+            ):
+                self._send_json(200, lab_status_payload(parts[2]))
+                return
+
+            # /api/programs/<id>/lab/hints/<objective_id>
+            if (
+                len(parts) == 6
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "lab"
+                and parts[4] == "hints"
+            ):
+                self._send_json(200, hints_for_objective(parts[2], parts[5]))
+                return
+
             # /api/programs/<id>/coach
             if (
                 len(parts) == 4
@@ -1882,7 +1937,7 @@ def serve_ui(
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "D4",
+        "phase": "E0",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
     print(f"Sentinel UI → {url}", flush=True)
@@ -1912,6 +1967,8 @@ __all__ = [
     "changes_payload",
     "assets_payload",
     "coach_payload",
+    "labs_payload",
+    "lab_status_payload",
     "settings_payload",
     "osint_graph_payload",
     "surface_payload",

@@ -10,7 +10,7 @@
   <header class="top">
     <div class="brand">
       <strong>Sentinel Suite</strong>
-      <span class="muted">local UI · Phase D4</span>
+      <span class="muted">local UI · Phase E0</span>
     </div>
     <nav>
       <button type="button" data-view="home" class="nav active">Home</button>
@@ -27,6 +27,7 @@
       <button type="button" data-view="surface" class="nav">Surface</button>
       <button type="button" data-view="authlab" class="nav">Auth lab</button>
       <button type="button" data-view="workbench" class="nav">Workbench</button>
+      <button type="button" data-view="labs" class="nav">Labs</button>
       <button type="button" data-view="coach" class="nav">Coach</button>
       <button type="button" data-view="settings" class="nav">Settings</button>
       <button type="button" data-view="auth" class="nav">Auth</button>
@@ -422,12 +423,65 @@
       </div>
     </section>
 
+
+    <section id="view-labs" class="view hidden">
+      <h1>Open Lab</h1>
+      <p class="lede">
+        File → Open Lab — intentional vuln curricula (Juice Shop). Expected findings are
+        <strong>learning objectives</strong>, not auto-emitted FINDING events. Hints unlock
+        <strong>after</strong> you record an attempt. Loopback defaults only. No LLM invent.
+      </p>
+      <div class="grid two">
+        <article class="card">
+          <h2>Catalog</h2>
+          <div class="row">
+            <label>Lab
+              <select id="labs-catalog"></select>
+            </label>
+            <label>Program id
+              <input id="labs-program-id" type="text" placeholder="lab-juice-shop" />
+            </label>
+            <button type="button" id="labs-open">Open Lab</button>
+            <button type="button" id="labs-refresh-catalog" class="ghost">Refresh catalog</button>
+          </div>
+          <pre id="labs-catalog-meta" class="mono small">Loading…</pre>
+          <pre id="labs-start-docs" class="mono log-dense">Start docs appear after open / catalog select.</pre>
+        </article>
+        <article class="card">
+          <h2>Bound program progress</h2>
+          <div class="row">
+            <label>Program
+              <select id="labs-program"></select>
+            </label>
+            <button type="button" id="labs-refresh">Refresh status</button>
+          </div>
+          <p id="labs-status-meta" class="muted small"></p>
+          <div id="labs-objectives" class="coach-list"></div>
+        </article>
+      </div>
+      <article class="card" style="margin-top:1rem">
+        <h2>Attempt / hints</h2>
+        <div class="row">
+          <label>Objective id
+            <input id="labs-objective-id" type="text" placeholder="js-admin-section" />
+          </label>
+          <label>Note
+            <input id="labs-attempt-note" type="text" placeholder="what you tried" />
+          </label>
+          <button type="button" id="labs-attempt">Record attempt (unlock hints)</button>
+          <button type="button" id="labs-complete" class="ghost">Mark complete (human)</button>
+          <button type="button" id="labs-show-hints" class="ghost">Show hints</button>
+        </div>
+        <pre id="labs-hints-out" class="mono log-dense">Hints stay locked until attempt.</pre>
+      </article>
+    </section>
+
     <section id="view-coach" class="view hidden">
       <h1>Coach</h1>
       <p class="lede">
         Methodology tutor for <strong>this program</strong> — stage checklist, pack-order
         rules from graph counts, FP school, report-school impact templates, Eye time-budget.
-        <strong>No LLM.</strong> Never invents findings; only cites store evidence counts.
+        <strong>No LLM.</strong> Never invents findings; only cites store evidence counts. Lab-bound programs also get Open Lab stage hooks (E0).
       </p>
       <div class="row">
         <label>Program

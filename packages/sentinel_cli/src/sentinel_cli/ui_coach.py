@@ -403,15 +403,27 @@ def coach_payload(program_id: str) -> dict[str, Any]:
         )
     stats = collect_program_stats(program_id)
     hints = generate_coach_hints(program_id, stats=stats)
+    lab_bound = False
+    # Phase E0 — lab hooks (curriculum only; never invent findings)
+    try:
+        from sentinel_cli.ui_labs import generate_lab_coach_hints, load_lab_binding
+
+        lab_bound = load_lab_binding(program_id) is not None
+        if lab_bound:
+            hints = list(hints) + generate_lab_coach_hints(program_id)
+    except Exception:  # noqa: BLE001 — coach must not fail if labs import issues
+        lab_bound = False
     return {
         "program_id": program_id,
         "hints": hints,
         "count": len(hints),
         "evidence_counts": stats,
+        "lab_bound": lab_bound,
         "disclaimer": (
             "Coach is a methodology tutor from live counts + static rules. "
-            "It never invents vulnerabilities. No LLM in D3. "
-            "Only FINDING events on the store are real findings."
+            "It never invents vulnerabilities. No LLM. "
+            "Only FINDING events on the store are real findings. "
+            "Lab hints are curriculum gates (attempt → unlock), not bug claims."
         ),
         "llm": False,
     }

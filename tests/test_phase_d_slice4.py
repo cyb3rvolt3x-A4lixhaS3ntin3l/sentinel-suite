@@ -365,7 +365,7 @@ def test_tauri_dry_run_script():
 
 def test_tauri_status_payload():
     out = tauri_status_payload()
-    assert out["phase"] == "D4"
+    assert out["phase"] in ("D4", "E0")
     assert out["electron"] is False
     assert out["browser_first"] is True
     assert out["tauri_scaffold"]["tauri_conf"] is True
@@ -377,7 +377,7 @@ def test_api_d4_routes(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] == "D4"
+    assert health["phase"] in ("D4", "E0")
 
     code, og = _http_json(f"{base}/api/programs/d4demo/osint-graph")
     assert code == 200, og

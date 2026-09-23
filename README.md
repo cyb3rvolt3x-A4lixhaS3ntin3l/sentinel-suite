@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase D4 shipped** — Tauri scaffold + OSINT/Surface/Auth lab/Workbench on `sentinel ui` → **http://127.0.0.1:8888** (browser first-class; Tauri wraps same SPA); D0–D3 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase E0 shipped** — Open Lab + Juice Shop curriculum (hints after attempt) on `sentinel ui` / `sentinel lab`; D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, PyPI publish; Tauri packaging CI (OAuth HOLD — see docs/ci-pending/tauri.yml) |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -25,8 +25,13 @@ pip install -e packages/sentinel_core \
             -e packages/sentinel_cli
 pytest -q
 sentinel doctor
+sentinel lab list
+sentinel lab open juice-shop --program lab-juice-shop
+# start Juice Shop (lab-only): docker run --rm -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop
+sentinel lab attempt lab-juice-shop js-admin-section --note 'tried admin'
+sentinel lab hints lab-juice-shop js-admin-section
 sentinel ui
-# → http://127.0.0.1:8888 (127.0.0.1 only by default)
+# → http://127.0.0.1:8888  (Labs tab = Open Lab) (127.0.0.1 only by default)
 # Desktop wrap (optional): start API above, then `cargo tauri dev` (loads same URL)
 # Dry-run scaffold: python scripts/tauri_dry_run.py
 sentinel program init demo

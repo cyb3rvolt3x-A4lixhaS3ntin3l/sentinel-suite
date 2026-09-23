@@ -238,7 +238,7 @@ def test_settings_payload_read(home):
     assert out["theme"]["stub"] is True
     assert out["rates_present"] is False
     assert out["rates"] is None
-    assert out["phase"] in ("D3", "D4")
+    assert out["phase"] in ("D3", "D4", "E0")
     assert out["auth"]["mode"] == "skip_lab"
 
 
@@ -312,7 +312,7 @@ def test_api_coach_and_settings_routes(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] in ("D3", "D4")
+    assert health["phase"] in ("D3", "D4", "E0")
 
     code, coach = _http_json(f"{base}/api/programs/d3demo/coach")
     assert code == 200, coach
@@ -357,7 +357,7 @@ def test_coach_settings_ro_without_auth(home):
         assert code == 200
         code, settings = _http_json(f"{base}/api/settings")
         assert code == 200
-        assert settings["phase"] in ("D3", "D4")
+        assert settings["phase"] in ("D3", "D4", "E0")
     finally:
         httpd.shutdown()
         httpd.server_close()
