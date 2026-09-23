@@ -122,7 +122,7 @@ def test_lab_catalog_has_three_labs():
         assert expected in ids
     payload = labs_payload()
     assert payload["count"] >= 3
-    assert payload["phase"] == "E2"
+    assert payload["phase"] in ("E2", "E3")
     assert payload["progress_schema_version"] == PROGRESS_SCHEMA_VERSION
     for L in payload["labs"]:
         assert L.get("start_docs")
@@ -135,7 +135,7 @@ def test_crapi_lab_open_and_hints(home):
     assert status["invent_findings"] is False
     assert status["auto_verified"] is False
     assert status["progress_schema_version"] == PROGRESS_SCHEMA_VERSION
-    assert status["phase"] == "E2"
+    assert status["phase"] in ("E2", "E3")
     root = program_dir("lab-crapi")
     assert (root / "lab.json").is_file()
     assert (root / "lab_progress.json").is_file()
@@ -214,7 +214,7 @@ def test_coach_kinds_work_for_crapi_and_auth(home):
     payload = coach_payload("e2coach-crapi")
     assert payload["lab_bound"] is True
     assert payload["llm"] is False
-    assert payload["phase"] == "E2"
+    assert payload["phase"] in ("E2", "E3")
     kinds = {h["kind"] for h in payload["hints"]}
     assert "lab_stage" in kinds
     assert "lab_fp_school" in kinds
@@ -252,7 +252,7 @@ def test_api_multi_lab_and_health(ui_server_skip):
     code, labs = _http_json(f"{base}/api/labs")
     assert code == 200
     assert labs["count"] >= 3
-    assert labs["phase"] == "E2"
+    assert labs["phase"] in ("E2", "E3")
     ids = {L["lab_id"] for L in labs["labs"]}
     assert ids >= set(EXPECTED_LABS)
 
@@ -285,11 +285,11 @@ def test_api_multi_lab_and_health(ui_server_skip):
     code, coach = _http_json(f"{base}/api/programs/e2api-auth/coach")
     assert code == 200
     assert coach["lab_bound"] is True
-    assert coach["phase"] == "E2"
+    assert coach["phase"] in ("E2", "E3")
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] == "E2"
+    assert health["phase"] in ("E2", "E3")
     assert health["default_bind"] == DEFAULT_UI_BIND
 
 

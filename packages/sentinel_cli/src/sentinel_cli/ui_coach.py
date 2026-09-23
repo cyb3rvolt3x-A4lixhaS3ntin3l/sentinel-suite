@@ -457,7 +457,7 @@ def coach_payload(program_id: str) -> dict[str, Any]:
             "Lab hints are curriculum gates (attempt → unlock), not bug claims."
         ),
         "llm": False,
-        "phase": "E2",
+        "phase": "E3",
     }
 
 

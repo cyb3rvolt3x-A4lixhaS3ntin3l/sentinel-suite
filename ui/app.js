@@ -1639,11 +1639,72 @@
           }
         });
       });
+      renderLabTutorial(data.tutorial || null);
     } catch (e) {
       box.innerHTML =
         '<p class="empty-state">' +
         esc(e.message || e) +
         " — open a lab first.</p>";
+      renderLabTutorial(null);
+    }
+  }
+
+  function renderLabTutorial(tutorial) {
+    const box = $("#labs-tutorial-checklist");
+    const meta = $("#labs-tutorial-meta");
+    if (!box) return;
+    if (!tutorial) {
+      box.innerHTML =
+        '<p class="muted">Open a lab-bound program to load the checklist.</p>';
+      if (meta) meta.textContent = "";
+      return;
+    }
+    let html = "";
+    for (const s of tutorial.steps || []) {
+      const mark = s.done ? "✓" : "○";
+      const cls = "coach-card" + (s.done ? " lab-obj-done" : "");
+      html +=
+        '<article class="' +
+        cls +
+        '"><span class="kind">' +
+        esc(s.id) +
+        "</span><h3>" +
+        esc(mark + " " + (s.title || "")) +
+        '</h3><p class="body">' +
+        esc(s.detail || "") +
+        "</p></article>";
+    }
+    box.innerHTML = html || '<p class="empty-state">No tutorial steps.</p>';
+    if (meta) {
+      meta.textContent =
+        "tutorial " +
+        (tutorial.done_count || 0) +
+        "/" +
+        (tutorial.total || 0) +
+        (tutorial.complete ? " · DONE" : "") +
+        " · lab1_exit=" +
+        String(!!tutorial.lab1_exit) +
+        " · confirmed_findings=" +
+        ((tutorial.counts && tutorial.counts.confirmed_findings) || 0) +
+        " · invent_findings=" +
+        String(!!tutorial.invent_findings);
+    }
+  }
+
+  async function refreshLabTutorial() {
+    const pid = $("#labs-program") && $("#labs-program").value;
+    if (!pid) {
+      renderLabTutorial(null);
+      return;
+    }
+    try {
+      const data = await api(
+        "/api/programs/" + encodeURIComponent(pid) + "/lab/tutorial"
+      );
+      renderLabTutorial(data);
+    } catch (e) {
+      const box = $("#labs-tutorial-checklist");
+      if (box) box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
     }
   }
 
@@ -1735,6 +1796,70 @@
 
   $("#labs-attempt").addEventListener("click", () => postLabAttempt(false));
   $("#labs-complete").addEventListener("click", () => postLabAttempt(true));
+
+  if ($("#labs-tutorial-refresh")) {
+    $("#labs-tutorial-refresh").addEventListener("click", refreshLabTutorial);
+  }
+  if ($("#labs-goto-confirm")) {
+    $("#labs-goto-confirm").addEventListener("click", () => {
+      const pid = $("#labs-program") && $("#labs-program").value;
+      if (pid && $("#findings-program")) $("#findings-program").value = pid;
+      if (pid && $("#report-program")) $("#report-program").value = pid;
+      showView("findings");
+    });
+  }
+  if ($("#labs-export-report")) {
+    $("#labs-export-report").addEventListener("click", async () => {
+      const pid = $("#labs-program") && $("#labs-program").value;
+      const out = $("#labs-report-out");
+      if (!pid) {
+        if (out) out.textContent = "Select a lab-bound program first.";
+        return;
+      }
+      try {
+        const data = await api(
+          "/api/programs/" + encodeURIComponent(pid) + "/lab/report",
+          { method: "POST", body: JSON.stringify({}) }
+        );
+        const result = data.result || data;
+        if (out) {
+          out.textContent = JSON.stringify(
+            {
+              ok: result.ok,
+              output: result.output,
+              tutorial_complete: result.tutorial_complete,
+              confirmed_findings: result.confirmed_findings,
+              invent_findings: result.invent_findings,
+              markdown_preview: (result.markdown || "").slice(0, 1200),
+            },
+            null,
+            2
+          );
+          out.dataset.markdown = result.markdown || "";
+          out.dataset.filename = "report.md";
+        }
+        // Also offer download
+        if (result.markdown) {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(
+            new Blob([result.markdown], { type: "text/markdown" })
+          );
+          a.download = "report.md";
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }
+        if (pid && $("#report-program")) $("#report-program").value = pid;
+        await refreshLabStatus();
+        await refreshLabTutorial();
+      } catch (e) {
+        if (out)
+          out.textContent =
+            e.message + (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
+        if (e.code === "need_first_run" || e.code === "auth_required") showView("auth");
+      }
+    });
+  }
+
   $("#labs-show-hints").addEventListener("click", async () => {
     const pid = $("#labs-program").value;
     const oid = ($("#labs-objective-id").value || "").trim();

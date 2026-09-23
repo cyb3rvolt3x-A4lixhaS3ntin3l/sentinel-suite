@@ -431,7 +431,7 @@
         <strong>crAPI</strong>, <strong>auth-session</strong>). Expected findings are
         <strong>learning objectives</strong>, not auto-emitted FINDING events. Hints unlock
         <strong>after</strong> you record an attempt. Shared attempt/hint/complete controls
-        for every lab. Loopback defaults only. No LLM invent.
+        for every lab. Loopback defaults only. No LLM invent. E3: finish Lab 1 tutorial → confirm-finding → export report.md.
       </p>
       <div class="grid two">
         <article class="card">
@@ -481,6 +481,24 @@
         </div>
         <p id="labs-progress-schema" class="muted small"></p>
         <pre id="labs-hints-out" class="mono log-dense">Hints stay locked until attempt. Same controls work for juice-shop, crapi, and auth-session.</pre>
+      </article>
+      <article class="card" style="margin-top:1rem" id="labs-tutorial-card">
+        <h2>Hunter tutorial — Lab 1 exit <span class="muted small">(E3)</span></h2>
+        <p class="lede">
+          Open Lab → attempt → hints → human complete ≥1 →
+          <strong>confirm-finding</strong> (Confirm tab) →
+          <strong>export report.md</strong>. Never invent findings; never auto-VERIFIED.
+        </p>
+        <div id="labs-tutorial-checklist" class="coach-list">
+          <p class="muted">Open a lab-bound program to load the checklist.</p>
+        </div>
+        <p id="labs-tutorial-meta" class="muted small"></p>
+        <div class="row">
+          <button type="button" id="labs-tutorial-refresh" class="ghost">Refresh tutorial</button>
+          <button type="button" id="labs-goto-confirm" class="ghost">Go to Confirm</button>
+          <button type="button" id="labs-export-report">Export report.md</button>
+        </div>
+        <pre id="labs-report-out" class="mono log-dense">Export writes program/report.md and marks the tutorial export step.</pre>
       </article>
     </section>
 

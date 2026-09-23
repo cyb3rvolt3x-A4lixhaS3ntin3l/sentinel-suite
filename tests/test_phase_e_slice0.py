@@ -123,7 +123,7 @@ def test_lab_catalog_juice_shop():
     payload = labs_payload()
     assert payload["count"] >= 1
     assert "juice-shop" in {L["lab_id"] for L in payload["labs"]}
-    assert payload["phase"] in ("E0", "E1", "E2")
+    assert payload["phase"] in ("E0", "E1", "E2", "E3")
 
 
 def test_open_lab_writes_binding_scope_no_findings(home):
@@ -260,7 +260,7 @@ def test_api_labs_open_attempt_hints_coach(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] in ("E0", "E1", "E2")
+    assert health["phase"] in ("E0", "E1", "E2", "E3")
     assert health["default_bind"] == DEFAULT_UI_BIND
 
 

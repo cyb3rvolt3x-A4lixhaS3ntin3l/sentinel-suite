@@ -241,7 +241,7 @@ def test_api_assets_changes_modules_routes(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] in ("D2", "D3", "D4", "E0", "E1", "E2")
+    assert health["phase"] in ("D2", "D3", "D4", "E0", "E1", "E2", "E3")
 
     code, assets = _http_json(f"{base}/api/programs/d2demo/assets")
     assert code == 200, assets

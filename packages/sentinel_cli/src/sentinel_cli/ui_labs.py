@@ -1,8 +1,9 @@
-"""Phase E2 — Open Lab: Juice Shop + crAPI + auth-session curricula.
+"""Phase E3 — Open Lab curricula + Lab 1 tutorial → platform-shaped report exit.
 
 Labs are curricula, not hunt packs. Never invent FINDING events or auto-VERIFIED.
 Hints stay locked until the operator records an attempt for that objective.
 Progress is versioned JSON (schema_version) under the program dir.
+E3: hunter tutorial checklist + confirm-finding → Reports export for lab programs.
 """
 
 from __future__ import annotations
@@ -522,13 +523,14 @@ def labs_payload() -> dict[str, Any]:
             for L in labs
         ],
         "count": len(labs),
-        "phase": "E2",
+        "phase": "E3",
         "progress_schema_version": PROGRESS_SCHEMA_VERSION,
         "note": (
             "Open Lab creates/binds a program with lab.json + versioned "
             "lab_progress.json + loopback scope. Does not start Docker; see "
             "start_docs on lab detail / open result. Shared attempt/hint UX "
-            "works for all catalog labs."
+            "works for all catalog labs. E3: Lab 1 tutorial → confirm-finding "
+            "→ platform-shaped report.md exit (sentinel lab tutorial / report)."
         ),
     }
 
@@ -564,6 +566,7 @@ def empty_progress(
         "program_id": program_id,
         "attempts": {},
         "completed": {},
+        "report_exports": [],
         "updated_at": None,
     }
 
@@ -592,12 +595,19 @@ def migrate_progress(
     for k, v in completed.items():
         if isinstance(v, dict):
             clean_completed[str(k)] = v
+    exports_raw = data.get("report_exports")
+    clean_exports: list[Any] = []
+    if isinstance(exports_raw, list):
+        for item in exports_raw:
+            if isinstance(item, dict):
+                clean_exports.append(item)
     return {
         "schema_version": PROGRESS_SCHEMA_VERSION,
         "lab_id": data.get("lab_id") or lab_id,
         "program_id": data.get("program_id") or program_id,
         "attempts": clean_attempts,
         "completed": clean_completed,
+        "report_exports": clean_exports,
         "updated_at": data.get("updated_at"),
     }
 
@@ -688,7 +698,7 @@ def open_lab(
         "hosts": hosts,
         "port": port,
         "opened_at": _utcnow_iso(),
-        "phase": "E2",
+        "phase": "E3",
         "progress_schema_version": PROGRESS_SCHEMA_VERSION,
         "invent_findings": False,
         "auto_verified": False,
@@ -900,7 +910,7 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
     completed_n = sum(1 for o in objectives_out if o["completed"])
     lab_id = binding["lab_id"]
 
-    return {
+    payload = {
         "program_id": program_id,
         "lab_id": lab_id,
         "name": binding.get("name") or lab["name"],
@@ -922,13 +932,14 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
             "updated_at": progress.get("updated_at"),
             "lab_id": progress.get("lab_id") or lab_id,
             "program_id": progress.get("program_id") or program_id,
+            "report_exports": list(progress.get("report_exports") or []),
         },
         "progress_schema_version": PROGRESS_SCHEMA_VERSION,
         "disclaimer": lab["disclaimer"],
         "invent_findings": False,
         "auto_verified": False,
         "llm": False,
-        "phase": "E2",
+        "phase": "E3",
         "how_to_open": {
             "cli": f"sentinel lab open {lab_id} --program {program_id}",
             "ui": f"Labs tab → select {lab_id} → Open Lab",
@@ -937,7 +948,24 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
                 f'"program_id":"{program_id}"}}'
             ),
         },
+        "how_to_exit": {
+            "cli": (
+                f"sentinel lab tutorial {program_id} && "
+                f"sentinel hunt confirm-finding {program_id} <id> "
+                f"--status confirmed --note '…' && "
+                f"sentinel lab report {program_id} -o ./report.md"
+            ),
+            "ui": (
+                "Labs → attempt/hints/complete → Confirm tab → "
+                "Labs tutorial Export report.md (or Reports tab)"
+            ),
+        },
     }
+    # Attach tutorial checklist (E3) without re-entering status recursion
+    payload["tutorial"] = tutorial_checklist(
+        program_id, status_snapshot=payload
+    )
+    return payload
 
 
 # Hours open / attempt totals before lab time-budget nudge (gentle).
@@ -1025,8 +1053,8 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
         ),
         "complete": (
             "Stage=complete — at least one objective has a human complete mark. "
-            "Continue remaining objectives; confirm real FINDING events with a note "
-            "before report wording. Still no auto-VERIFIED."
+            "Next Lab 1 exit: confirm real FINDING events with a note, then "
+            "`sentinel lab report` / Labs Export report.md (E3). Still no auto-VERIFIED."
         ),
     }
     hints.append(
@@ -1251,6 +1279,403 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
     return hints
 
 
+# --- Phase E3: hunter tutorial "done" checklist + lab report exit -------------
+
+TUTORIAL_STEPS: tuple[dict[str, str], ...] = (
+    {
+        "id": "open_lab",
+        "title": "Open Lab",
+        "detail": "Bind a program via sentinel lab open / Labs → Open Lab",
+    },
+    {
+        "id": "attempt",
+        "title": "Attempt ≥1 objective",
+        "detail": "Record an attempt (unlocks hints) — attempt ≠ verified finding",
+    },
+    {
+        "id": "hints",
+        "title": "Unlock hints",
+        "detail": "View hint ladder after attempt (Labs / sentinel lab hints)",
+    },
+    {
+        "id": "complete",
+        "title": "Human complete ≥1 objective",
+        "detail": "Mark complete yourself — never auto from pack output",
+    },
+    {
+        "id": "confirm_finding",
+        "title": "confirm-finding ≥1 FINDING",
+        "detail": (
+            "Human confirm a real graph FINDING with a note "
+            "(sentinel hunt confirm-finding / Confirm tab) — never auto-VERIFIED"
+        ),
+    },
+    {
+        "id": "export_report",
+        "title": "Export report.md",
+        "detail": (
+            "Platform-shaped markdown via sentinel lab report / Labs Export / Reports"
+        ),
+    },
+)
+
+
+def _confirmed_finding_rows(program_id: str) -> list[dict[str, Any]]:
+    """Confirmed/verified FINDING rows only (human gate). Never invents."""
+    from gungnir.packs.confirm import list_findings
+
+    confirmed: list[dict[str, Any]] = []
+    for row in list_findings(program_id, status="all"):
+        ver = str(row.get("verification") or "").lower()
+        if ver in ("confirmed", "verified") or row.get("human_confirmed"):
+            confirmed.append(row)
+    return confirmed
+
+
+def tutorial_checklist(
+    program_id: str,
+    *,
+    status_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Hunter tutorial "done" checklist for an open lab (Lab 1 exit story).
+
+    Done criteria (all must be true):
+      open → attempt → hints unlocked → human complete ≥1 →
+      confirm-finding ≥1 → report.md export recorded.
+    """
+    if status_snapshot is None:
+        binding = load_lab_binding(program_id)
+        if not binding:
+            raise FileNotFoundError(
+                f"program {program_id!r} is not an open lab"
+            )
+        lab = get_lab_def(str(binding["lab_id"]))
+        progress = load_progress(program_id)
+        attempts = progress.get("attempts") or {}
+        completed = progress.get("completed") or {}
+        objectives = list(lab.get("objectives") or [])
+        attempted_n = sum(1 for o in objectives if str(o["id"]) in attempts)
+        unlocked_n = sum(
+            1
+            for o in objectives
+            if isinstance(attempts.get(str(o["id"])), dict)
+            and attempts[str(o["id"])].get("hints_unlocked")
+        )
+        completed_n = sum(1 for o in objectives if str(o["id"]) in completed)
+        exports = list(progress.get("report_exports") or [])
+        lab_id = binding["lab_id"]
+        name = binding.get("name") or lab["name"]
+    else:
+        counts = dict(status_snapshot.get("counts") or {})
+        attempted_n = int(counts.get("attempted") or 0)
+        unlocked_n = int(counts.get("hints_unlocked") or 0)
+        completed_n = int(counts.get("completed") or 0)
+        prog = dict(status_snapshot.get("progress") or {})
+        exports = list(prog.get("report_exports") or [])
+        if not exports:
+            exports = list(load_progress(program_id).get("report_exports") or [])
+        lab_id = status_snapshot.get("lab_id")
+        name = status_snapshot.get("name") or lab_id
+
+    confirmed_rows = _confirmed_finding_rows(program_id)
+    confirmed_n = len(confirmed_rows)
+    exported_n = len(exports)
+
+    done_map = {
+        "open_lab": True,
+        "attempt": attempted_n >= 1,
+        "hints": unlocked_n >= 1,
+        "complete": completed_n >= 1,
+        "confirm_finding": confirmed_n >= 1,
+        "export_report": exported_n >= 1,
+    }
+
+    steps_out: list[dict[str, Any]] = []
+    for step in TUTORIAL_STEPS:
+        sid = step["id"]
+        steps_out.append({**step, "done": bool(done_map.get(sid))})
+
+    all_done = all(s["done"] for s in steps_out)
+    next_step = next((s for s in steps_out if not s["done"]), None)
+
+    return {
+        "program_id": program_id,
+        "lab_id": lab_id,
+        "name": name,
+        "lab1_exit": lab_id == "juice-shop",
+        "steps": steps_out,
+        "done_count": sum(1 for s in steps_out if s["done"]),
+        "total": len(steps_out),
+        "complete": all_done,
+        "next_step": next_step,
+        "counts": {
+            "attempted": attempted_n,
+            "hints_unlocked": unlocked_n,
+            "completed": completed_n,
+            "confirmed_findings": confirmed_n,
+            "report_exports": exported_n,
+        },
+        "confirmed_finding_ids": [r.get("id") for r in confirmed_rows],
+        "report_exports": exports,
+        "invent_findings": False,
+        "auto_verified": False,
+        "llm": False,
+        "phase": "E3",
+        "story": (
+            "Open Lab → attempt → hints → human complete ≥1 objective → "
+            "confirm-finding (human note) → export report.md. "
+            "Curriculum titles are learning goals, not FINDING events."
+        ),
+        "cli": {
+            "tutorial": f"sentinel lab tutorial {program_id}",
+            "confirm": (
+                f"sentinel hunt confirm-finding {program_id} <finding-id> "
+                f"--status confirmed --note 'reproduced on lab'"
+            ),
+            "report": f"sentinel lab report {program_id} -o ./report.md",
+        },
+        "ui": {
+            "labs": "Labs tab — Open / Attempt / Hints / Complete + Tutorial card",
+            "confirm": "Confirm tab — submit confirm-finding with note",
+            "report": "Labs → Export report.md (or Reports tab download)",
+        },
+    }
+
+
+def _render_curriculum_section(status: dict[str, Any]) -> str:
+    """Honest curriculum progress block — never claims vulns exist."""
+    lines = [
+        "## Curriculum progress (not findings)",
+        "",
+        (
+            "_Learning objectives only. Titles below are curriculum pointers — "
+            "they are **not** auto-emitted FINDING events and do **not** imply "
+            "a verified vulnerability._"
+        ),
+        "",
+        f"- Lab: `{status.get('lab_id')}` ({status.get('name')})",
+        f"- Base URL: `{status.get('base_url')}`",
+        (
+            f"- Progress: attempted={status.get('counts', {}).get('attempted', 0)}/"
+            f"{status.get('counts', {}).get('objectives', 0)}; "
+            f"hints_unlocked={status.get('counts', {}).get('hints_unlocked', 0)}; "
+            f"completed={status.get('counts', {}).get('completed', 0)} "
+            f"(human mark only)"
+        ),
+        "",
+        "| Objective | Category | Attempted | Hints | Human complete |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for o in status.get("objectives") or []:
+        lines.append(
+            f"| `{o.get('id')}` — {o.get('title') or ''} | "
+            f"{o.get('category') or ''} | "
+            f"{'yes' if o.get('attempted') else 'no'} | "
+            f"{'yes' if o.get('hints_unlocked') else 'locked'} | "
+            f"{'yes' if o.get('completed') else 'no'} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _render_tutorial_section(tutorial: dict[str, Any]) -> str:
+    lines = [
+        "## Hunter tutorial checklist (Lab 1 exit)",
+        "",
+        f"Complete: **{'YES' if tutorial.get('complete') else 'NO'}** "
+        f"({tutorial.get('done_count')}/{tutorial.get('total')})",
+        "",
+    ]
+    for s in tutorial.get("steps") or []:
+        mark = "[x]" if s.get("done") else "[ ]"
+        lines.append(f"- {mark} **{s.get('title')}** — {s.get('detail')}")
+    lines.append("")
+    lines.append(
+        "_Fences: human confirm only; never auto-VERIFIED; never invent findings; "
+        "report findings come only from the graph after confirm-finding._"
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_lab_report_markdown(
+    program_id: str,
+    *,
+    confirmed_only: bool = True,
+) -> str:
+    """
+    Platform-shaped lab exit report: tutorial + curriculum + findings.
+
+    Findings section reuses Phase C graph evidence only.
+    When ``confirmed_only``, unconfirmed FINDING events are omitted.
+    """
+    from gungnir.packs.report import collect_pack_findings
+
+    status = lab_status_payload(program_id)
+    tutorial = status.get("tutorial") or tutorial_checklist(
+        program_id, status_snapshot=status
+    )
+
+    parts: list[str] = [
+        f"# Lab exit report — `{program_id}`",
+        "",
+        f"Lab: `{status.get('lab_id')}` · phase E3 · platform-shaped skeleton",
+        "",
+        (
+            "This report is the **suite story exit** for Open Lab "
+            "(confirm-finding → Reports). Steps/Impact come from stored "
+            "evidence + checklist only — **no LLM invent**."
+        ),
+        "",
+        f"- invent_findings: `{False}`",
+        f"- auto_verified: `{False}`",
+        f"- llm: `{False}`",
+        "",
+        "---",
+        "",
+        _render_tutorial_section(tutorial),
+        "---",
+        "",
+        _render_curriculum_section(status),
+        "---",
+        "",
+        "## Confirmed findings (graph)",
+        "",
+    ]
+
+    rows = collect_pack_findings(program_id, pack_id=None)
+    if confirmed_only:
+        filtered = []
+        for row in rows:
+            finding = row["finding"]
+            payload = getattr(finding, "payload", None) or {}
+            ver = str(
+                payload.get("verification")
+                or payload.get("verification_status")
+                or "unverified"
+            ).lower()
+            if ver in ("confirmed", "verified") or payload.get("human_confirmed"):
+                filtered.append(row)
+        rows = filtered
+
+    if not rows:
+        parts.append(
+            "_No confirmed FINDING events yet. Run a gated pack on the lab "
+            "base URL (fixtures / ownership flags), then "
+            f"`sentinel hunt confirm-finding {program_id} <id> "
+            "--status confirmed --note '…'`, then re-export._"
+        )
+        parts.append("")
+        if not confirmed_only:
+            parts.append(
+                "_Tip: use `--all-findings` to include needs_human rows "
+                "(still not invented)._"
+            )
+            parts.append("")
+    else:
+        label = "confirmed only" if confirmed_only else "all graph findings"
+        parts.append(f"Findings included: **{len(rows)}** ({label})")
+        parts.append("")
+        for i, row in enumerate(rows):
+            parts.append(row["markdown"])
+            if i < len(rows) - 1:
+                parts.append("---")
+                parts.append("")
+
+    parts.extend(
+        [
+            "---",
+            "",
+            (
+                "_Remediation / Impact narrative placeholders — fill for real "
+                "platform submission. Lab curriculum complete ≠ bug bounty claim._"
+            ),
+            "",
+        ]
+    )
+    return "\n".join(parts)
+
+
+def export_lab_report(
+    program_id: str,
+    *,
+    output: str | Path | None = None,
+    confirmed_only: bool = True,
+) -> dict[str, Any]:
+    """
+    Export lab platform-shaped report.md and record tutorial export step.
+
+    Reuses D1/Phase C report skeleton for findings; curriculum + tutorial
+    sections are honestly labeled (not FINDING invent).
+    """
+    binding = load_lab_binding(program_id)
+    if not binding:
+        raise FileNotFoundError(
+            f"program {program_id!r} is not an open lab; "
+            f"run: sentinel lab open juice-shop --program {program_id}"
+        )
+
+    md = render_lab_report_markdown(program_id, confirmed_only=confirmed_only)
+    if output is not None:
+        path = Path(output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(md, encoding="utf-8")
+        written = str(path.resolve())
+    else:
+        path = program_dir(program_id) / "report.md"
+        path.write_text(md, encoding="utf-8")
+        written = str(path.resolve())
+
+    progress = load_progress(program_id)
+    exports = list(progress.get("report_exports") or [])
+    exports.append(
+        {
+            "at": _utcnow_iso(),
+            "path": written,
+            "confirmed_only": bool(confirmed_only),
+            "source": "lab_report",
+        }
+    )
+    progress["report_exports"] = exports
+    progress["lab_id"] = binding.get("lab_id")
+    progress["program_id"] = program_id
+    save_progress(program_id, progress)
+
+    tutorial = tutorial_checklist(program_id)
+    confirmed_n = int((tutorial.get("counts") or {}).get("confirmed_findings") or 0)
+
+    return {
+        "ok": True,
+        "program_id": program_id,
+        "lab_id": binding.get("lab_id"),
+        "output": written,
+        "confirmed_only": bool(confirmed_only),
+        "confirmed_findings": confirmed_n,
+        "tutorial_complete": bool(tutorial.get("complete")),
+        "tutorial": tutorial,
+        "markdown": md,
+        "invent_findings": False,
+        "auto_verified": False,
+        "phase": "E3",
+    }
+
+
+def export_lab_report_action(
+    program_id: str, body: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    body = body or {}
+    output = body.get("output")
+    confirmed_only = body.get("confirmed_only")
+    if confirmed_only is None:
+        confirmed_only = not bool(body.get("all_findings"))
+    return export_lab_report(
+        program_id,
+        output=str(output) if output else None,
+        confirmed_only=bool(confirmed_only),
+    )
+
+
 def open_lab_action(body: dict[str, Any]) -> dict[str, Any]:
     lab_id = str(body.get("lab_id") or "").strip()
     if not lab_id:
@@ -1287,8 +1712,11 @@ __all__ = [
     "LAB_TIME_BUDGET_ATTEMPT_TOTAL",
     "LAB_TIME_BUDGET_HOURS",
     "PROGRESS_SCHEMA_VERSION",
+    "TUTORIAL_STEPS",
     "attempt_lab_action",
     "empty_progress",
+    "export_lab_report",
+    "export_lab_report_action",
     "generate_lab_coach_hints",
     "get_lab_def",
     "hints_for_objective",
@@ -1302,5 +1730,7 @@ __all__ = [
     "open_lab",
     "open_lab_action",
     "record_attempt",
+    "render_lab_report_markdown",
     "save_progress",
+    "tutorial_checklist",
 ]

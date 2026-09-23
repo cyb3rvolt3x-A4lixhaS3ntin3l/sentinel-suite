@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E2)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E3)."""
 
 from __future__ import annotations
 
@@ -649,6 +649,41 @@ def cmd_lab_coach(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_tutorial(args: argparse.Namespace) -> int:
+    """Hunter tutorial done checklist (E3 Lab 1 exit)."""
+    from sentinel_cli.ui_labs import tutorial_checklist
+
+    try:
+        payload = tutorial_checklist(args.program_id)
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(payload, indent=2, default=str))
+    return 0
+
+
+def cmd_lab_report(args: argparse.Namespace) -> int:
+    """Export platform-shaped lab report.md (confirm → Reports exit)."""
+    from sentinel_cli.ui_labs import export_lab_report
+
+    confirmed_only = not bool(getattr(args, "all_findings", False))
+    try:
+        result = export_lab_report(
+            args.program_id,
+            output=getattr(args, "output", None),
+            confirmed_only=confirmed_only,
+        )
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    out = dict(result)
+    if not getattr(args, "print_markdown", False):
+        md = out.pop("markdown", None)
+        out["markdown_chars"] = len(md or "")
+    print(json.dumps(out, indent=2, default=str))
+    return 0
+
+
 def cmd_collaborator_serve(args: argparse.Namespace) -> int:
     """Owned loopback collaborator callback listener (Phase C slice15)."""
     from gungnir.packs.ssrf_collaborator.caps import CapExceededError
@@ -1200,6 +1235,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     lab_coach.add_argument("program_id", help="Program id bound to a lab")
     lab_coach.set_defaults(func=cmd_lab_coach)
+
+    lab_tutorial = lab_sub.add_parser(
+        "tutorial",
+        help="Hunter tutorial done checklist (E3 Lab 1 → report exit)",
+    )
+    lab_tutorial.add_argument("program_id", help="Lab-bound program id")
+    lab_tutorial.set_defaults(func=cmd_lab_tutorial)
+
+    lab_report = lab_sub.add_parser(
+        "report",
+        help="Export platform-shaped lab report.md (confirm-finding → Reports)",
+    )
+    lab_report.add_argument("program_id", help="Lab-bound program id")
+    lab_report.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output path (default: <program>/report.md under SENTINEL_HOME)",
+    )
+    lab_report.add_argument(
+        "--all-findings",
+        action="store_true",
+        help="Include needs_human findings (default: confirmed/verified only)",
+    )
+    lab_report.add_argument(
+        "--print-markdown",
+        action="store_true",
+        help="Include full markdown in JSON stdout",
+    )
+    lab_report.set_defaults(func=cmd_lab_report)
 
     ui = sub.add_parser(
         "ui",

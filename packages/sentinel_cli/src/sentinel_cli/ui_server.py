@@ -26,10 +26,12 @@ from sentinel_cli.ui_auth import (
 from sentinel_cli.ui_coach import coach_payload
 from sentinel_cli.ui_labs import (
     attempt_lab_action,
+    export_lab_report_action,
     hints_for_objective,
     lab_status_payload,
     labs_payload,
     open_lab_action,
+    tutorial_checklist,
 )
 from sentinel_cli.ui_d4 import (
     auth_lab_payload,
@@ -1392,7 +1394,7 @@ def settings_payload(
         },
         "rates": rates,
         "rates_present": rates is not None,
-        "phase": "E2",
+        "phase": "E3",
         "license": "MIT",
         "fences": {
             "tauri": True,
@@ -1434,6 +1436,9 @@ def _is_mutating_path(path: str, method: str) -> bool:
             return True
         # /api/programs/<id>/lab/attempt
         if path.endswith("/lab/attempt") or path.rstrip("/").endswith("/lab/attempt"):
+            return True
+        # /api/programs/<id>/lab/report (writes report.md + progress)
+        if path.endswith("/lab/report") or path.rstrip("/").endswith("/lab/report"):
             return True
     if method == "PUT":
         if path.endswith("/scope"):
@@ -1630,6 +1635,22 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                     {"ok": True, "result": attempt_lab_action(parts[2], body)},
                 )
                 return
+            # /api/programs/<id>/lab/report
+            if (
+                len(parts) == 5
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "lab"
+                and parts[4] == "report"
+            ):
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "result": export_lab_report_action(parts[2], body),
+                    },
+                )
+                return
             # /api/programs/<id>/scope/brief
             if (
                 len(parts) == 5
@@ -1696,7 +1717,7 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                     {
                         "ok": True,
                         "service": "sentinel-ui",
-                        "phase": "E2",
+                        "phase": "E3",
                         "default_bind": DEFAULT_UI_BIND,
                         "default_port": DEFAULT_UI_PORT,
                     },
@@ -1832,6 +1853,58 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(200, hints_for_objective(parts[2], parts[5]))
                 return
 
+            # /api/programs/<id>/lab/tutorial
+            if (
+                len(parts) == 5
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "lab"
+                and parts[4] == "tutorial"
+            ):
+                self._send_json(200, tutorial_checklist(parts[2]))
+                return
+
+            # /api/programs/<id>/lab/report (GET preview; POST writes)
+            if (
+                len(parts) == 5
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "lab"
+                and parts[4] == "report"
+            ):
+                from sentinel_cli.ui_labs import render_lab_report_markdown
+
+                confirmed_only = (qs.get("all_findings") or ["0"])[0].lower() not in (
+                    "1",
+                    "true",
+                    "yes",
+                )
+                fmt = (qs.get("format") or ["json"])[0].lower()
+                md = render_lab_report_markdown(
+                    parts[2], confirmed_only=confirmed_only
+                )
+                if fmt in ("markdown", "md"):
+                    self._send_text(
+                        200, md, "text/markdown; charset=utf-8"
+                    )
+                    return
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "program_id": parts[2],
+                        "confirmed_only": confirmed_only,
+                        "markdown": md,
+                        "preview": True,
+                        "note": (
+                            "GET is preview only — POST /lab/report to write "
+                            "report.md and mark tutorial export done"
+                        ),
+                        "phase": "E3",
+                    },
+                )
+                return
+
             # /api/programs/<id>/coach
             if (
                 len(parts) == 4
@@ -1937,7 +2010,7 @@ def serve_ui(
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "E2",
+        "phase": "E3",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
     print(f"Sentinel UI → {url}", flush=True)
@@ -1969,6 +2042,8 @@ __all__ = [
     "coach_payload",
     "labs_payload",
     "lab_status_payload",
+    "tutorial_checklist",
+    "export_lab_report_action",
     "settings_payload",
     "osint_graph_payload",
     "surface_payload",
