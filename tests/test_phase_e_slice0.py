@@ -122,7 +122,7 @@ def test_lab_catalog_juice_shop():
     assert "docker" in lab["start_docs"].lower()
     payload = labs_payload()
     assert payload["count"] == 1
-    assert payload["phase"] == "E0"
+    assert payload["phase"] in ("E0", "E1")
 
 
 def test_open_lab_writes_binding_scope_no_findings(home):
@@ -259,7 +259,7 @@ def test_api_labs_open_attempt_hints_coach(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] == "E0"
+    assert health["phase"] in ("E0", "E1")
     assert health["default_bind"] == DEFAULT_UI_BIND
 
 

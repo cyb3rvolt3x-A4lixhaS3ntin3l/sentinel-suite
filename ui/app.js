@@ -881,22 +881,53 @@
 
 
 
+  function renderCoachCard(h, labProminent) {
+    const isLab = String(h.kind || "").indexOf("lab_") === 0;
+    const cls = "coach-card" + (labProminent && isLab ? " lab-kind" : "");
+    let html =
+      '<article class="' +
+      cls +
+      '"><span class="kind">' +
+      esc(h.kind) +
+      "</span><h3>" +
+      esc(h.title) +
+      '</h3><p class="body">' +
+      esc(h.body) +
+      "</p>";
+    if (h.evidence_counts) {
+      html +=
+        '<div class="evidence">evidence: ' +
+        esc(JSON.stringify(h.evidence_counts)) +
+        "</div>";
+    }
+    html += "</article>";
+    return html;
+  }
+
   async function loadCoach() {
     const pid = $("#coach-program").value;
     const box = $("#coach-hints");
     const meta = $("#coach-meta");
     const disc = $("#coach-disclaimer");
+    const labSec = $("#coach-lab-section");
+    const labBox = $("#coach-lab-hints");
+    const labMeta = $("#coach-lab-meta");
+    const methodHead = $("#coach-method-heading");
     if (!pid) {
       box.innerHTML = '<p class="empty-state">Select a program.</p>';
       meta.textContent = "";
       disc.textContent = "";
+      if (labSec) labSec.classList.add("hidden");
+      if (methodHead) methodHead.classList.add("hidden");
       return;
     }
     box.innerHTML = '<p class="muted">Loading…</p>';
+    if (labBox) labBox.innerHTML = "";
     try {
       const data = await api("/api/programs/" + encodeURIComponent(pid) + "/coach");
       disc.textContent = data.disclaimer || "";
       const ec = data.evidence_counts || {};
+      const lp = data.lab_progress || {};
       meta.textContent =
         (data.count || 0) +
         " hints · urls=" +
@@ -911,31 +942,66 @@
         String(!!data.llm) +
         " · lab_bound=" +
         String(!!data.lab_bound);
-      if (!(data.hints || []).length) {
-        box.innerHTML = '<p class="empty-state">No hints.</p>';
-        return;
-      }
-      let html = "";
-      for (const h of data.hints) {
-        html +=
-          '<article class="coach-card"><span class="kind">' +
-          esc(h.kind) +
-          "</span><h3>" +
-          esc(h.title) +
-          '</h3><p class="body">' +
-          esc(h.body) +
-          "</p>";
-        if (h.evidence_counts) {
-          html +=
-            '<div class="evidence">evidence: ' +
-            esc(JSON.stringify(h.evidence_counts)) +
-            "</div>";
+      const all = data.hints || [];
+      const labHints = all.filter(function (h) {
+        return String(h.kind || "").indexOf("lab_") === 0;
+      });
+      const methodHints = all.filter(function (h) {
+        return String(h.kind || "").indexOf("lab_") !== 0;
+      });
+      if (data.lab_bound && labSec && labBox) {
+        labSec.classList.remove("hidden");
+        if (methodHead) methodHead.classList.remove("hidden");
+        const counts = (lp && lp.counts) || {};
+        labMeta.textContent =
+          "lab=" +
+          (lp.lab_id || "?") +
+          " · stage=" +
+          (lp.lab_stage || "?") +
+          " · attempted=" +
+          (counts.attempted || 0) +
+          "/" +
+          (counts.objectives || 0) +
+          " · unlocked=" +
+          (counts.hints_unlocked || 0) +
+          " · completed=" +
+          (counts.completed || 0) +
+          " · kinds=" +
+          ((data.lab_kinds || []).join(",") || "—");
+        if (!labHints.length) {
+          labBox.innerHTML = '<p class="empty-state">No lab hints yet.</p>';
+        } else {
+          labBox.innerHTML = labHints
+            .map(function (h) {
+              return renderCoachCard(h, true);
+            })
+            .join("");
         }
-        html += "</article>";
+        if (!methodHints.length) {
+          box.innerHTML = '<p class="empty-state">No methodology hints.</p>';
+        } else {
+          box.innerHTML = methodHints
+            .map(function (h) {
+              return renderCoachCard(h, false);
+            })
+            .join("");
+        }
+      } else {
+        if (labSec) labSec.classList.add("hidden");
+        if (methodHead) methodHead.classList.add("hidden");
+        if (!all.length) {
+          box.innerHTML = '<p class="empty-state">No hints.</p>';
+          return;
+        }
+        box.innerHTML = all
+          .map(function (h) {
+            return renderCoachCard(h, false);
+          })
+          .join("");
       }
-      box.innerHTML = html;
     } catch (e) {
       box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
+      if (labSec) labSec.classList.add("hidden");
     }
   }
 

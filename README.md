@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase E0 shipped** — Open Lab + Juice Shop curriculum (hints after attempt) on `sentinel ui` / `sentinel lab`; D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase E1 shipped** — Coach lab-aware (`lab_stage` / `lab_fp_school` / `lab_time_budget`) + Open Lab Juice Shop on `sentinel ui` / `sentinel lab`; D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, PyPI publish; Tauri packaging CI (OAuth HOLD — see docs/ci-pending/tauri.yml) |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -134,6 +134,7 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 - D1 polish: [`docs/PHASE_D_SLICE1.md`](docs/PHASE_D_SLICE1.md) — Hunt/Scope/Reports, confirm-finding, optional `ui_auth.json` bcrypt / skip-lab
 - D2: [`docs/PHASE_D_SLICE2.md`](docs/PHASE_D_SLICE2.md) — Assets / Changes / Modules
 - D3: [`docs/PHASE_D_SLICE3.md`](docs/PHASE_D_SLICE3.md) — Coach + Settings (no LLM; never invents findings)
+- E0/E1: [`docs/PHASE_E_SLICE0.md`](docs/PHASE_E_SLICE0.md) · [`docs/PHASE_E_SLICE1.md`](docs/PHASE_E_SLICE1.md) — Open Lab + lab-aware Coach
 - Non-goals v1: Burp replacement, team mode, cloud sync, Electron; Tauri optional shell (D4 scaffold)
 
 ## License

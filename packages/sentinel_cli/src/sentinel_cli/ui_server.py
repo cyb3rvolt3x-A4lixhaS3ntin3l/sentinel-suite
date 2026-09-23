@@ -1392,7 +1392,7 @@ def settings_payload(
         },
         "rates": rates,
         "rates_present": rates is not None,
-        "phase": "E0",
+        "phase": "E1",
         "license": "MIT",
         "fences": {
             "tauri": True,
@@ -1696,7 +1696,7 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                     {
                         "ok": True,
                         "service": "sentinel-ui",
-                        "phase": "E0",
+                        "phase": "E1",
                         "default_bind": DEFAULT_UI_BIND,
                         "default_port": DEFAULT_UI_PORT,
                     },
@@ -1937,7 +1937,7 @@ def serve_ui(
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "E0",
+        "phase": "E1",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
     print(f"Sentinel UI → {url}", flush=True)

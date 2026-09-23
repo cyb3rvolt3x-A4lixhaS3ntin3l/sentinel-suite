@@ -198,7 +198,7 @@ def labs_payload() -> dict[str, Any]:
             for L in labs
         ],
         "count": len(labs),
-        "phase": "E0",
+        "phase": "E1",
         "note": (
             "Open Lab creates/binds a program with lab.json + loopback scope. "
             "Does not start Docker; see start_docs on lab detail / open result."
@@ -299,7 +299,7 @@ def open_lab(
         "hosts": hosts,
         "port": port,
         "opened_at": _utcnow_iso(),
-        "phase": "E0",
+        "phase": "E1",
         "invent_findings": False,
         "auto_verified": False,
     }
@@ -500,7 +500,7 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
         "invent_findings": False,
         "auto_verified": False,
         "llm": False,
-        "phase": "E0",
+        "phase": "E1",
         "how_to_open": {
             "cli": f"sentinel lab open {binding['lab_id']} --program {program_id}",
             "ui": "Labs tab → select juice-shop → Open Lab",
@@ -509,9 +509,55 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
     }
 
 
+# Hours open / attempt totals before lab time-budget nudge (gentle).
+LAB_TIME_BUDGET_HOURS = 2.0
+LAB_TIME_BUDGET_ATTEMPT_TOTAL = 4
+
+
+def _parse_iso_ts(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    try:
+        text = str(value).strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except (TypeError, ValueError):
+        return None
+
+
+def _lab_stage_name(counts: dict[str, Any], objectives: list[dict[str, Any]]) -> str:
+    """
+    Map open-lab progress → stage label.
+
+    map      — no attempts yet (start app / recon)
+    attempt  — some attempts, still locked objectives remaining
+    hint     — all attempted objectives unlocked; no human completes yet
+    complete — at least one human complete; may still have remaining
+    """
+    attempted = int(counts.get("attempted") or 0)
+    completed = int(counts.get("completed") or 0)
+    if completed > 0:
+        return "complete"
+    if attempted == 0:
+        return "map"
+    locked_remaining = sum(1 for o in objectives if not o.get("hints_unlocked"))
+    if locked_remaining > 0:
+        return "attempt"
+    return "hint"
+
+
 def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
     """
     Coach hooks for an open lab — methodology only; never claims vulns exist.
+
+    Phase E1 kinds: lab_stage (map|attempt|hint|complete), lab_fp_school,
+    lab_time_budget — driven from lab_progress.json + binding opened_at.
     """
     binding = load_lab_binding(program_id)
     if not binding:
@@ -522,29 +568,56 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
         return []
 
     hints: list[dict[str, Any]] = []
-    counts = status.get("counts") or {}
+    counts = dict(status.get("counts") or {})
+    objectives = list(status.get("objectives") or [])
+    stage = _lab_stage_name(counts, objectives)
+
+    stage_advice = {
+        "map": (
+            "Stage=map — no attempts recorded yet. Start Juice Shop on loopback "
+            "(LAB_START.md), recon the SPA, then record an attempt on an objective "
+            "to unlock hints. Do not invent FINDING events from curriculum titles."
+        ),
+        "attempt": (
+            "Stage=attempt — you have recorded tries; some objective hints may still "
+            "be locked. Record `sentinel lab attempt` (or Labs tab) per objective "
+            "before reading the hint ladder. Attempt ≠ verified finding."
+        ),
+        "hint": (
+            "Stage=hint — hints unlocked via attempts, but no human completes yet. "
+            "Use methodology hints + gated packs on the lab base URL; mark complete "
+            "yourself when you believe the curriculum objective is done (never auto)."
+        ),
+        "complete": (
+            "Stage=complete — at least one objective has a human complete mark. "
+            "Continue remaining objectives; confirm real FINDING events with a note "
+            "before report wording. Still no auto-VERIFIED."
+        ),
+    }
     hints.append(
         {
-            "id": "lab-stage-open",
+            "id": f"lab-stage-{stage}",
             "kind": "lab_stage",
-            "title": f"Lab open — {status.get('name')}",
+            "title": f"Lab stage — {stage} · {status.get('name')}",
             "body": (
-                f"Program {program_id!r} is bound to lab {status.get('lab_id')!r} "
+                f"Program {program_id!r} bound to lab {status.get('lab_id')!r} "
                 f"@ {status.get('base_url')}. "
                 f"Progress: attempted={counts.get('attempted', 0)}/"
                 f"{counts.get('objectives', 0)}, "
                 f"hints_unlocked={counts.get('hints_unlocked', 0)}, "
-                f"completed={counts.get('completed', 0)} (human mark only). "
-                f"Start the intentional vuln app on loopback before pack runs — "
-                f"see LAB_START.md. Coach never invents findings for lab objectives."
+                f"completed={counts.get('completed', 0)} (human mark only).\n"
+                + stage_advice.get(stage, stage_advice["map"])
             ),
-            "evidence_counts": dict(counts),
+            "evidence_counts": {
+                **counts,
+                "lab_stage": stage,
+                "lab_id": status.get("lab_id"),
+            },
+            "lab_stage": stage,
         }
     )
 
-    locked = [
-        o for o in status.get("objectives") or [] if not o.get("hints_unlocked")
-    ]
+    locked = [o for o in objectives if not o.get("hints_unlocked")]
     if locked:
         sample = locked[0]
         hints.append(
@@ -580,9 +653,7 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
             }
         )
 
-    unfinished = [
-        o for o in status.get("objectives") or [] if not o.get("completed")
-    ]
+    unfinished = [o for o in objectives if not o.get("completed")]
     if unfinished:
         nxt = unfinished[0]
         packs = ", ".join(nxt.get("suggested_packs") or []) or "(recon / manual)"
@@ -603,7 +674,134 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
             }
         )
 
+    # --- lab_fp_school: attempts without complete → contextual FP tips ---
+    stuck = [
+        o for o in objectives if o.get("attempted") and not o.get("completed")
+    ]
+    if stuck:
+        lines = [
+            "Lab FP school (methodology only — not claims these bugs exist here):",
+            "· Reflection in Juice Shop search ≠ XSS until you name a sink + context.",
+            "· Hitting /administration as role A ≠ broken access control until you "
+            "compare status/body across roles on the same object.",
+            "· JWT decode ≠ weak-alg impact until jwt_session evidence is confirmed.",
+            "· Open redirect candidate ≠ reportable until navigation follows your URL.",
+            "· Curriculum titles are learning goals — never auto-emitted FINDING events.",
+        ]
+        samples: list[str] = []
+        for o in stuck[:3]:
+            cat = o.get("category") or "general"
+            samples.append(f"{o.get('id')}[{cat}]")
+            if cat == "xss":
+                lines.append(
+                    f"· On {o.get('id')}: treat search reflection as a sink hunt, "
+                    f"not a verified XSS (see suggested xss_dom methodology)."
+                )
+            elif cat in ("access_control", "access"):
+                lines.append(
+                    f"· On {o.get('id')}: 403/200 alone is not BOLA — need role A/B "
+                    f"object access evidence before confirm-finding."
+                )
+            elif cat == "auth":
+                lines.append(
+                    f"· On {o.get('id')}: capture a real lab token; do not invent "
+                    f"JWTs in notes or reports."
+                )
+            elif cat == "redirect":
+                lines.append(
+                    f"· On {o.get('id')}: prove Location/client nav follows an "
+                    f"attacker URL you control (lab-only) before impact language."
+                )
+            elif cat == "recon":
+                lines.append(
+                    f"· On {o.get('id')}: recon objectives have no FINDING claim — "
+                    f"mark complete only when you personally found the surface."
+                )
+        lines.append(
+            f"Stuck (attempted, not human-complete): {', '.join(samples)}. "
+            f"Coach never invents extras."
+        )
+        hints.append(
+            {
+                "id": "lab-fp-school",
+                "kind": "lab_fp_school",
+                "title": "Lab FP school — Juice Shop context",
+                "body": "\n".join(lines),
+                "evidence_counts": {
+                    "stuck_objectives": len(stuck),
+                    "attempted": counts.get("attempted", 0),
+                    "completed": counts.get("completed", 0),
+                    "sample_ids": [o.get("id") for o in stuck[:5]],
+                },
+            }
+        )
+
+    # --- lab_time_budget: many attempts / long open without completes ---
+    progress = load_progress(program_id)
+    attempt_total = 0
+    for att in (progress.get("attempts") or {}).values():
+        if isinstance(att, dict):
+            attempt_total += int(att.get("count") or 1)
+        else:
+            attempt_total += 1
+    opened_at = binding.get("opened_at") or status.get("opened_at")
+    opened_dt = _parse_iso_ts(opened_at)
+    age_h = None
+    if opened_dt is not None:
+        age_h = round(
+            (datetime.now(timezone.utc) - opened_dt).total_seconds() / 3600.0, 2
+        )
+    completed_n = int(counts.get("completed") or 0)
+    many_attempts = (
+        attempt_total >= LAB_TIME_BUDGET_ATTEMPT_TOTAL and completed_n == 0
+    )
+    long_open = (
+        age_h is not None
+        and float(age_h) >= float(LAB_TIME_BUDGET_HOURS)
+        and completed_n == 0
+        and int(counts.get("attempted") or 0) >= 1
+    )
+    if many_attempts or long_open:
+        reasons = []
+        if many_attempts:
+            reasons.append(
+                f"attempt_events={attempt_total} "
+                f"(≥{LAB_TIME_BUDGET_ATTEMPT_TOTAL}) with 0 human completes"
+            )
+        if long_open:
+            reasons.append(
+                f"lab open ~{age_h}h "
+                f"(≥{LAB_TIME_BUDGET_HOURS}h) with attempts but 0 completes"
+            )
+        hints.append(
+            {
+                "id": "lab-time-budget",
+                "kind": "lab_time_budget",
+                "title": "Lab time-budget — pause & reassess",
+                "body": (
+                    "Gentle reminder (not a fail): "
+                    + "; ".join(reasons)
+                    + ". "
+                    "Reassess: unlock remaining hints, run one gated pack on "
+                    f"{status.get('base_url')}, or mark a completed objective "
+                    "yourself when the curriculum step is honestly done. "
+                    "Do not grind endless attempts without a human complete mark. "
+                    "Coach never auto-completes or invents findings."
+                ),
+                "evidence_counts": {
+                    "attempt_total": attempt_total,
+                    "lab_open_age_hours": age_h,
+                    "lab_time_budget_hours": LAB_TIME_BUDGET_HOURS,
+                    "lab_time_budget_attempt_total": LAB_TIME_BUDGET_ATTEMPT_TOTAL,
+                    "completed": completed_n,
+                    "attempted": counts.get("attempted", 0),
+                    "opened_at": opened_at,
+                },
+            }
+        )
+
     return hints
+
 
 
 def open_lab_action(body: dict[str, Any]) -> dict[str, Any]:
@@ -635,6 +833,8 @@ def attempt_lab_action(program_id: str, body: dict[str, Any]) -> dict[str, Any]:
 __all__ = [
     "JUICE_SHOP_DEFAULT_BASE",
     "JUICE_SHOP_START_DOCS",
+    "LAB_TIME_BUDGET_ATTEMPT_TOTAL",
+    "LAB_TIME_BUDGET_HOURS",
     "attempt_lab_action",
     "generate_lab_coach_hints",
     "get_lab_def",

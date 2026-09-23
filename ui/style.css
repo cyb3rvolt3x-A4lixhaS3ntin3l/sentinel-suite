@@ -168,3 +168,24 @@ body.theme-light .mono-input { background: #fff; }
 body.theme-light .viz-box { background: #f0f3f8; }
 body.theme-light .cmd-results li:hover,
 body.theme-light .cmd-results li.active { background: #e8eef8; }
+
+/* E1 — lab-aware Coach */
+.coach-lab-section {
+  margin: 1rem 0 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: rgba(47, 111, 237, 0.08);
+}
+.coach-lab-section h2 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+#coach-method-heading { margin: 1rem 0 0.5rem; font-size: 1.05rem; color: var(--muted); }
+.coach-card.lab-kind {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(47, 111, 237, 0.25);
+}
+.coach-card.lab-kind .kind {
+  background: rgba(47, 111, 237, 0.2);
+  color: #9ec1ff;
+}
+body.theme-light .coach-lab-section { background: #eaf1ff; }
+body.theme-light .coach-card.lab-kind .kind { color: #1a4fb8; }

@@ -481,7 +481,9 @@
       <p class="lede">
         Methodology tutor for <strong>this program</strong> — stage checklist, pack-order
         rules from graph counts, FP school, report-school impact templates, Eye time-budget.
-        <strong>No LLM.</strong> Never invents findings; only cites store evidence counts. Lab-bound programs also get Open Lab stage hooks (E0).
+        <strong>No LLM.</strong> Never invents findings; only cites store evidence counts.
+        Lab-bound programs get a prominent <strong>Lab Coach</strong> section
+        (<code>lab_stage</code> / <code>lab_fp_school</code> / <code>lab_time_budget</code> — E1).
       </p>
       <div class="row">
         <label>Program
@@ -491,6 +493,12 @@
       </div>
       <p id="coach-meta" class="muted small"></p>
       <p id="coach-disclaimer" class="lede warn"></p>
+      <div id="coach-lab-section" class="coach-lab-section hidden">
+        <h2>Lab Coach</h2>
+        <p id="coach-lab-meta" class="muted small"></p>
+        <div id="coach-lab-hints" class="coach-list"></div>
+      </div>
+      <h2 id="coach-method-heading" class="hidden">Methodology</h2>
       <div id="coach-hints" class="coach-list"></div>
     </section>
 

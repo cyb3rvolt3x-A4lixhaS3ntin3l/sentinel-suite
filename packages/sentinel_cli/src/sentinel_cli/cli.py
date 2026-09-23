@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E0)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E1)."""
 
 from __future__ import annotations
 
@@ -636,6 +636,19 @@ def cmd_lab_hints(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_coach(args: argparse.Namespace) -> int:
+    """Dump Coach payload for a lab-bound program (E1 lab-aware kinds)."""
+    from sentinel_cli.ui_coach import coach_payload
+
+    try:
+        payload = coach_payload(args.program_id)
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(payload, indent=2, default=str))
+    return 0
+
+
 def cmd_collaborator_serve(args: argparse.Namespace) -> int:
     """Owned loopback collaborator callback listener (Phase C slice15)."""
     from gungnir.packs.ssrf_collaborator.caps import CapExceededError
@@ -1127,7 +1140,7 @@ def build_parser() -> argparse.ArgumentParser:
     lab = sub.add_parser(
         "lab",
         help=(
-            "Open Lab curricula (Phase E0): Juice Shop expected findings, "
+            "Open Lab curricula (Phase E1): Juice Shop + lab-aware Coach kinds, "
             "hints after attempt. Lab-only loopback defaults; no invented findings."
         ),
     )
@@ -1180,6 +1193,13 @@ def build_parser() -> argparse.ArgumentParser:
     lab_hints.add_argument("program_id", help="Program id")
     lab_hints.add_argument("objective_id", help="Objective id")
     lab_hints.set_defaults(func=cmd_lab_hints)
+
+    lab_coach = lab_sub.add_parser(
+        "coach",
+        help="Coach payload for a lab program (lab_stage / lab_fp_school / lab_time_budget)",
+    )
+    lab_coach.add_argument("program_id", help="Program id bound to a lab")
+    lab_coach.set_defaults(func=cmd_lab_coach)
 
     ui = sub.add_parser(
         "ui",
