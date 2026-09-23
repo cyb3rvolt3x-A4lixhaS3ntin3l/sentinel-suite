@@ -1,0 +1,266 @@
+{
+  "program_id": "demo-andrax",
+  "event_count": 15,
+  "scoped": true,
+  "no_tools": true,
+  "layers": [
+    "L0",
+    "L1",
+    "L2",
+    "L5",
+    "L6",
+    "ranker"
+  ],
+  "inventory": {
+    "domains": [
+      "andraxpentester.in",
+      "www.andraxpentester.in"
+    ],
+    "dns_names": [
+      {
+        "name": "andraxpentester.in",
+        "parent": "andraxpentester.in",
+        "source": "native"
+      },
+      {
+        "name": "www.andraxpentester.in",
+        "parent": "andraxpentester.in",
+        "source": "native"
+      }
+    ],
+    "ips": [
+      {
+        "ip": "191.101.104.194",
+        "host": "andraxpentester.in"
+      },
+      {
+        "ip": "195.35.60.62",
+        "host": "www.andraxpentester.in"
+      },
+      {
+        "ip": "191.96.144.165",
+        "host": "www.andraxpentester.in"
+      }
+    ],
+    "ports": [
+      {
+        "host": "andraxpentester.in",
+        "port": 80
+      },
+      {
+        "host": "andraxpentester.in",
+        "port": 443
+      },
+      {
+        "host": "www.andraxpentester.in",
+        "port": 80
+      },
+      {
+        "host": "www.andraxpentester.in",
+        "port": 443
+      }
+    ],
+    "http": [
+      {
+        "url": "https://andraxpentester.in/",
+        "status": 200,
+        "title": "Andrax Pentester \u2014 Cybersecurity Research, Education &amp; MCPGrade",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:01 GMT",
+          "content-type": "text/html; charset=utf-8",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "vary": "Accept-Encoding",
+          "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "referrer-policy": "strict-origin-when-cross-origin",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()",
+          "content-security-policy": "upgrade-insecure-requests",
+          "set-cookie": "__Secure-authjs.callback-url=https%3A%2F%2Fandraxpentester.in; Path=/; HttpOnly; Secure; SameSite=Lax",
+          "x-nextjs-cache": "HIT",
+          "x-nextjs-prerender": "1",
+          "x-nextjs-stale-time": "300",
+          "cache-control": "s-maxage=300, stale-while-revalidate=31535700",
+          "etag": "W/\"szzyxj9g606mdw\"",
+          "platform": "hostinger",
+          "panel": "hpanel",
+          "server": "hcdn",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "x-hcdn-request-id": "1edaf707ceb07539251421d24ae69075-imm-edge3",
+          "x-hcdn-cache-status": "DYNAMIC",
+          "x-hcdn-upstream-rt": "0.778"
+        }
+      },
+      {
+        "url": "https://andraxpentester.in/",
+        "status": 200,
+        "title": "Andrax Pentester \u2014 Cybersecurity Research, Education &amp; MCPGrade",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:03 GMT",
+          "content-type": "text/html; charset=utf-8",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "vary": "Accept-Encoding",
+          "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "referrer-policy": "strict-origin-when-cross-origin",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()",
+          "content-security-policy": "upgrade-insecure-requests",
+          "set-cookie": "__Secure-authjs.callback-url=https%3A%2F%2Fandraxpentester.in; Path=/; HttpOnly; Secure; SameSite=Lax",
+          "x-nextjs-cache": "HIT",
+          "x-nextjs-prerender": "1",
+          "x-nextjs-stale-time": "300",
+          "cache-control": "s-maxage=300, stale-while-revalidate=31535700",
+          "etag": "W/\"szzyxj9g606mdw\"",
+          "platform": "hostinger",
+          "panel": "hpanel",
+          "server": "hcdn",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "x-hcdn-request-id": "f811d3e3b03407bc4b7a782fc6b3d78f-imm-edge6",
+          "x-hcdn-cache-status": "DYNAMIC",
+          "x-hcdn-upstream-rt": "0.839"
+        }
+      },
+      {
+        "url": "https://www.andraxpentester.in/",
+        "status": 200,
+        "title": "Andrax Pentester \u2014 Cybersecurity Research, Education &amp; MCPGrade",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:06 GMT",
+          "content-type": "text/html; charset=utf-8",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "vary": "Accept-Encoding",
+          "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "referrer-policy": "strict-origin-when-cross-origin",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()",
+          "content-security-policy": "upgrade-insecure-requests",
+          "set-cookie": "__Secure-authjs.callback-url=https%3A%2F%2Fandraxpentester.in; Path=/; HttpOnly; Secure; SameSite=Lax",
+          "x-nextjs-cache": "HIT",
+          "x-nextjs-prerender": "1",
+          "x-nextjs-stale-time": "300",
+          "cache-control": "s-maxage=300, stale-while-revalidate=31535700",
+          "etag": "W/\"szzyxj9g606mdw\"",
+          "platform": "hostinger",
+          "panel": "hpanel",
+          "server": "hcdn",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "x-hcdn-request-id": "6354a4f38829073ecf750c798328c648-imm-edge6",
+          "x-hcdn-cache-status": "DYNAMIC",
+          "x-hcdn-upstream-rt": "1.859"
+        }
+      },
+      {
+        "url": "https://www.andraxpentester.in/",
+        "status": 200,
+        "title": "Andrax Pentester \u2014 Cybersecurity Research, Education &amp; MCPGrade",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:08 GMT",
+          "content-type": "text/html; charset=utf-8",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "vary": "Accept-Encoding",
+          "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "referrer-policy": "strict-origin-when-cross-origin",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()",
+          "content-security-policy": "upgrade-insecure-requests",
+          "set-cookie": "__Secure-authjs.callback-url=https%3A%2F%2Fandraxpentester.in; Path=/; HttpOnly; Secure; SameSite=Lax",
+          "x-nextjs-cache": "HIT",
+          "x-nextjs-prerender": "1",
+          "x-nextjs-stale-time": "300",
+          "cache-control": "s-maxage=300, stale-while-revalidate=31535700",
+          "etag": "W/\"szzyxj9g606mdw\"",
+          "platform": "hostinger",
+          "panel": "hpanel",
+          "server": "hcdn",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "x-hcdn-request-id": "4dc5294927ba3c956885d91e29cf09f1-imm-edge4",
+          "x-hcdn-cache-status": "DYNAMIC",
+          "x-hcdn-upstream-rt": "0.869"
+        }
+      }
+    ],
+    "tech": [],
+    "identity": [],
+    "sources": [
+      "native",
+      "reverse-ip-stub"
+    ],
+    "ranked": [
+      {
+        "key": "andraxpentester.in",
+        "score": 12.0,
+        "reasons": [
+          "token_sub:test"
+        ]
+      },
+      {
+        "key": "www.andraxpentester.in",
+        "score": 1.0,
+        "reasons": [
+          "boring:www"
+        ]
+      }
+    ],
+    "notes": [
+      {
+        "source": "reverse-ip-stub",
+        "ip": "191.101.104.194",
+        "note": "offline / no fetcher \u2014 returning empty",
+        "dropped_oos": 0
+      },
+      {
+        "source": "reverse-ip-stub",
+        "ip": "195.35.60.62",
+        "note": "offline / no fetcher \u2014 returning empty",
+        "dropped_oos": 0
+      },
+      {
+        "source": "reverse-ip-stub",
+        "ip": "191.96.144.165",
+        "note": "offline / no fetcher \u2014 returning empty",
+        "dropped_oos": 0
+      }
+    ]
+  },
+  "watch": {
+    "diffs": {
+      "first_run": true,
+      "previous_ts": null,
+      "current_ts": "2026-09-23T14:27:08.804564+00:00",
+      "dns_names": {
+        "added": [],
+        "removed": []
+      },
+      "ports": {
+        "added": [],
+        "removed": []
+      },
+      "http": {
+        "added": [],
+        "removed": []
+      },
+      "tech": {
+        "added": [],
+        "removed": []
+      }
+    },
+    "snapshot_ts": "2026-09-23T14:27:08.804564+00:00",
+    "previous_ts": null,
+    "latest_path": "/workspace/deliverables/demos/sentinel-home/programs/demo-andrax/runs/latest.json"
+  }
+}

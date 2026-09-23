@@ -1,0 +1,35 @@
+{
+  "dns_names": [
+    "andraxpentester.in",
+    "www.andraxpentester.in"
+  ],
+  "domains": [
+    "andraxpentester.in",
+    "www.andraxpentester.in"
+  ],
+  "http": [
+    "https://andraxpentester.in/",
+    "https://www.andraxpentester.in/"
+  ],
+  "identity": [],
+  "ports": [
+    {
+      "host": "andraxpentester.in",
+      "port": 80
+    },
+    {
+      "host": "andraxpentester.in",
+      "port": 443
+    },
+    {
+      "host": "www.andraxpentester.in",
+      "port": 80
+    },
+    {
+      "host": "www.andraxpentester.in",
+      "port": 443
+    }
+  ],
+  "tech": [],
+  "ts": "2026-09-23T14:27:08.804564+00:00"
+}

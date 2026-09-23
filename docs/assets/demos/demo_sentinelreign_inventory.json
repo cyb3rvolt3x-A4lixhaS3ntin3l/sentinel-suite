@@ -1,0 +1,41 @@
+{
+  "dns_names": [
+    "api.sentinelreign.com",
+    "mail.sentinelreign.com",
+    "sentinelreign.com",
+    "www.sentinelreign.com"
+  ],
+  "domains": [
+    "sentinelreign.com",
+    "www.sentinelreign.com"
+  ],
+  "http": [
+    "http://sentinelreign.com/",
+    "http://www.sentinelreign.com/",
+    "https://sentinelreign.com/",
+    "https://www.sentinelreign.com/"
+  ],
+  "identity": [],
+  "ports": [
+    {
+      "host": "sentinelreign.com",
+      "port": 80
+    },
+    {
+      "host": "sentinelreign.com",
+      "port": 443
+    },
+    {
+      "host": "www.sentinelreign.com",
+      "port": 80
+    },
+    {
+      "host": "www.sentinelreign.com",
+      "port": 443
+    }
+  ],
+  "tech": [
+    "cloudflare"
+  ],
+  "ts": "2026-09-23T14:27:16.943259+00:00"
+}

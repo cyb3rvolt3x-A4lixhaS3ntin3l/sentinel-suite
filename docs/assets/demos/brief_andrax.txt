@@ -1,0 +1,12 @@
+# Founder-owned demo program — Andrax / AndraxPentester
+# Owner affirmation: Sumita Adhikari / Cyb3rVolt3x Founder assets only.
+# Authorized security testing for Sentinel Suite product demos.
+
+In Scope:
+- andraxpentester.in
+- www.andraxpentester.in
+
+Out of Scope:
+- *.thirdparty.example
+- guard.sentinelreign.com
+- Any client or non-Founder host

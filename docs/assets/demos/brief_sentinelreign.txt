@@ -1,0 +1,12 @@
+# Founder-owned demo program — SentinelReign parent marketing site
+# Owner affirmation: Sumita Adhikari / Cyb3rVolt3x Founder assets only.
+# Authorized security testing for Sentinel Suite product demos.
+
+In Scope:
+- sentinelreign.com
+- www.sentinelreign.com
+
+Out of Scope:
+- guard.sentinelreign.com
+- Any client or non-Founder host
+- Guard SDK / sentinelagent-guard (never in suite demos)

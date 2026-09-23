@@ -1,0 +1,241 @@
+{
+  "program_id": "demo-sentinelreign",
+  "event_count": 17,
+  "scoped": true,
+  "no_tools": true,
+  "layers": [
+    "L0",
+    "L1",
+    "L2",
+    "L5",
+    "L6",
+    "ranker"
+  ],
+  "inventory": {
+    "domains": [
+      "sentinelreign.com",
+      "www.sentinelreign.com"
+    ],
+    "dns_names": [
+      {
+        "name": "api.sentinelreign.com",
+        "parent": "sentinelreign.com",
+        "source": "native"
+      },
+      {
+        "name": "mail.sentinelreign.com",
+        "parent": "sentinelreign.com",
+        "source": "native"
+      },
+      {
+        "name": "sentinelreign.com",
+        "parent": "sentinelreign.com",
+        "source": "native"
+      },
+      {
+        "name": "www.sentinelreign.com",
+        "parent": "sentinelreign.com",
+        "source": "native"
+      }
+    ],
+    "ips": [
+      {
+        "ip": "172.67.223.214",
+        "host": "sentinelreign.com"
+      },
+      {
+        "ip": "104.21.54.49",
+        "host": "api.sentinelreign.com"
+      }
+    ],
+    "ports": [
+      {
+        "host": "sentinelreign.com",
+        "port": 80
+      },
+      {
+        "host": "sentinelreign.com",
+        "port": 443
+      },
+      {
+        "host": "www.sentinelreign.com",
+        "port": 80
+      },
+      {
+        "host": "www.sentinelreign.com",
+        "port": 443
+      }
+    ],
+    "http": [
+      {
+        "url": "http://sentinelreign.com/",
+        "status": 200,
+        "title": "SentinelReign \u2014 Security for the agentic era",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:15 GMT",
+          "content-type": "text/html",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=RZdENlsDAjJufvKqvILNALtFzXgsFQJU%2F8RHzvRCoi9czgVyCMVwfMbLAUC%2Fy43c6JSgE6LCfitM29tjWbWoUUtTQPF9pzufdriYetfN8H%2FGePXl%2BMIwuhCzkF%2FkmyASXJ7QgA%3D%3D\"}]}",
+          "last-modified": "Tue, 22 Sep 2026 16:00:31 GMT",
+          "server": "cloudflare",
+          "vary": "Accept-Encoding",
+          "cf-cache-status": "DYNAMIC",
+          "server-timing": "cfEdge;dur=117,cfOrigin;dur=285",
+          "cf-ray": "a3fa3aa5ac2205e5-IAD",
+          "alt-svc": "h3=\":443\"; ma=86400"
+        }
+      },
+      {
+        "url": "https://sentinelreign.com/",
+        "status": 200,
+        "title": "SentinelReign \u2014 Security for the agentic era",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:16 GMT",
+          "content-type": "text/html",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=DEYqq3Md9Eui4oF5RCga%2F3GicuVVWzTAcN0K8P4ERRXEvrt6kP9kgd5lSozJ6ithA65NCRv4gfmbJxJI5f3H7kBPqP4SZthBh2KJHrz%2FfoNGtLAbrJUYEd9or8F4f0pkhTtiog%3D%3D\"}]}",
+          "server-timing": "cfEdge;dur=23,cfOrigin;dur=286",
+          "last-modified": "Tue, 22 Sep 2026 16:00:31 GMT",
+          "server": "cloudflare",
+          "vary": "Accept-Encoding",
+          "cf-cache-status": "DYNAMIC",
+          "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "cf-ray": "a3fa3aa878a6206c-IAD",
+          "alt-svc": "h3=\":443\"; ma=86400"
+        }
+      },
+      {
+        "url": "http://www.sentinelreign.com/",
+        "status": 200,
+        "title": "SentinelReign \u2014 Security for the agentic era",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:16 GMT",
+          "content-type": "text/html",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=kyGcPYM2rBE6Fgm84ZFusjYjZYROpyGw0V%2FydyGPZ%2Fv%2FlcTWuF0beO3FeQ7yNwd08bYPO47BUxOoH0D0k8K7crEN%2F3HQcdGM8%2BpD4Rybpv%2FrOWVujAKdu%2B4sqBthAzEOAIP8SLhox98%3D\"}]}",
+          "last-modified": "Tue, 22 Sep 2026 16:00:31 GMT",
+          "server": "cloudflare",
+          "vary": "Accept-Encoding",
+          "cf-cache-status": "DYNAMIC",
+          "server-timing": "cfEdge;dur=39,cfOrigin;dur=286",
+          "cf-ray": "a3fa3aaa7aedc95b-IAD",
+          "alt-svc": "h3=\":443\"; ma=86400"
+        }
+      },
+      {
+        "url": "https://www.sentinelreign.com/",
+        "status": 200,
+        "title": "SentinelReign \u2014 Security for the agentic era",
+        "headers": {
+          "date": "Wed, 23 Sep 2026 14:27:16 GMT",
+          "content-type": "text/html",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=WJdEPTyGgAiD7%2F9o4qXzLexDzwHzrZErQHRPG84azHj0YtbZvVML2v1HCJgV9sIZN1Z8qA7zPmt7CEMjYApuqDL9RMU2o1a4Teppz6eaMalT5ALBC6BiPjatBjATet6IH2wT6I5j7WI%3D\"}]}",
+          "server-timing": "cfEdge;dur=11,cfOrigin;dur=282",
+          "last-modified": "Tue, 22 Sep 2026 16:00:31 GMT",
+          "server": "cloudflare",
+          "vary": "Accept-Encoding",
+          "cf-cache-status": "DYNAMIC",
+          "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "cf-ray": "a3fa3aaced13206c-IAD",
+          "alt-svc": "h3=\":443\"; ma=86400"
+        }
+      }
+    ],
+    "tech": [
+      {
+        "name": "cloudflare",
+        "confidence": 0.55,
+        "evidence": "cloudflare",
+        "source": "header",
+        "url": "http://sentinelreign.com/"
+      }
+    ],
+    "identity": [],
+    "sources": [
+      "native",
+      "reverse-ip-stub",
+      "tech_fingerprint"
+    ],
+    "ranked": [
+      {
+        "key": "api.sentinelreign.com",
+        "score": 29.0,
+        "reasons": [
+          "token:api",
+          "tech_other:cloudflare"
+        ]
+      },
+      {
+        "key": "mail.sentinelreign.com",
+        "score": 5.0,
+        "reasons": [
+          "boring:mail",
+          "tech_other:cloudflare"
+        ]
+      },
+      {
+        "key": "sentinelreign.com",
+        "score": 5.0,
+        "reasons": [
+          "base",
+          "tech_other:cloudflare"
+        ]
+      },
+      {
+        "key": "www.sentinelreign.com",
+        "score": 5.0,
+        "reasons": [
+          "boring:www",
+          "tech_other:cloudflare"
+        ]
+      }
+    ],
+    "notes": [
+      {
+        "source": "reverse-ip-stub",
+        "ip": "172.67.223.214",
+        "note": "offline / no fetcher \u2014 returning empty",
+        "dropped_oos": 0
+      },
+      {
+        "source": "reverse-ip-stub",
+        "ip": "104.21.54.49",
+        "note": "offline / no fetcher \u2014 returning empty",
+        "dropped_oos": 0
+      }
+    ]
+  },
+  "watch": {
+    "diffs": {
+      "first_run": true,
+      "previous_ts": null,
+      "current_ts": "2026-09-23T14:27:16.943259+00:00",
+      "dns_names": {
+        "added": [],
+        "removed": []
+      },
+      "ports": {
+        "added": [],
+        "removed": []
+      },
+      "http": {
+        "added": [],
+        "removed": []
+      },
+      "tech": {
+        "added": [],
+        "removed": []
+      }
+    },
+    "snapshot_ts": "2026-09-23T14:27:16.943259+00:00",
+    "previous_ts": null,
+    "latest_path": "/workspace/deliverables/demos/sentinel-home/programs/demo-sentinelreign/runs/latest.json"
+  }
+}

@@ -1,6 +1,6 @@
 # Productization research (Step 0) — pointer
 
-**Status:** RESEARCH COMPLETE (2026-09-23 IST) — demos / packaging builds / README rewrite are **out of scope** for this step.
+**Status:** RESEARCH COMPLETE (2026-09-23 IST). Demos (step 1) shipped — see [`PRODUCTIZATION_DEMOS.md`](PRODUCTIZATION_DEMOS.md). Packaging builds / README rewrite still out of scope here.
 
 Full evidence-based packet (competitors, README SEO, Tauri vs Releases, webopen notes, blockers):
 

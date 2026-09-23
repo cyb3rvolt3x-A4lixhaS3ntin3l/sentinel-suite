@@ -1,0 +1,13 @@
+{
+  "program_id": "demo-andrax",
+  "domains": [
+    "andraxpentester.in",
+    "www.andraxpentester.in"
+  ],
+  "dns_names_count": 2,
+  "ports_count": 4,
+  "http_count": 2,
+  "tech_count": 0,
+  "identity_count": 0,
+  "ts": "2026-09-23T14:27:08.804564+00:00"
+}

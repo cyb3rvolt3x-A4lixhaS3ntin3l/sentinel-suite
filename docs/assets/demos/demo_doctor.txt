@@ -1,0 +1,32 @@
+python: 3.13.5 (/workspace/sentinel-suite/.venv/bin/python3.13)
+sentinel_core: import OK (v0.1.0)
+SENTINEL_HOME: /workspace/deliverables/demos/sentinel-home
+SENTINEL_HOME writable: yes
+bin dir: /workspace/deliverables/demos/sentinel-home/bin (ok)
+engines pinned: (none)
+engines detected (PATH/bin):
+  - curl: version=curl 8.14.1 (x86_64-pc-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.7 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0 @ /usr/bin/curl
+  - httpx: version=The httpx command line client could not run because the required dependencies were not installed. @ /workspace/gungnir-harden/.venv/bin/httpx
+  - python: version=Python 3.13.5 @ /workspace/sentinel-suite/.venv/bin/python
+  - python3: version=Python 3.13.5 @ /workspace/sentinel-suite/.venv/bin/python3
+  - true: version=true (GNU coreutils) 9.7 @ /usr/bin/true
+  - wget: version=GNU Wget 1.25.0 built on linux-gnu. @ /usr/bin/wget
+engines allowlisted: (empty — no vetted hashes yet; see docs/ENGINES.md)
+engines deferred (not hashed): dnsx, ffuf, katana, naabu, nuclei, subfinder
+engines download: allowlist-only under SENTINEL_HOME/bin (allowlisted=[]; never mutates PATH)
+note: missing optional engines do not fail doctor (Phase F degrade)
+event schema: ok
+shadowseye: import OK (v0.1.0)
+gungnir: import OK (v0.1.0)
+port-scan tools: mode=stdlib-tcp (product_ok=yes)
+  nmap: (missing)
+  naabu: (missing — deferred engine)
+  note: Nmap missing — degrading port scan story to Naabu-class messaging (Naabu is deferred / not allowlisted yet) and Eye stdlib TCP connect. Product remains usable; install Nmap optionally for richer scans later.
+optional API keys: none required for core
+  present: (none)
+  note: Optional API keys: none required for core Eye/Hunt/UI. None of the common optional keys are set. Missing keys do not fail doctor or block the product.
+WSL/Windows: platform=linux wsl_found=False in_guest=False
+  guidance: native-unix
+  note: Native Linux (x86_64) — WSL not applicable. Engine runs natively; Windows users should prefer WSL2 for the engine backend (docs/WSL2.md).
+note: missing Nmap / API keys / WSL degrade messaging only — doctor still PASS when core is healthy
+doctor: PASS
