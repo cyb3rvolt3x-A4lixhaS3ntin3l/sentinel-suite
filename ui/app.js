@@ -1,4 +1,4 @@
-/* Sentinel Suite Phase D2 — tiny SPA (no build step). */
+/* Sentinel Suite Phase D3 — tiny SPA (no build step). */
 (function () {
   const $ = (sel) => document.querySelector(sel);
   const TOKEN_KEY = "sentinel_ui_token";
@@ -52,6 +52,8 @@
     if (name === "assets") loadAssets();
     if (name === "changes") loadChanges();
     if (name === "modules") loadModules();
+    if (name === "coach") loadCoach();
+    if (name === "settings") loadSettings();
   }
 
   document.querySelectorAll("nav button.nav").forEach((btn) => {
@@ -92,6 +94,7 @@
       "report-program",
       "assets-program",
       "changes-program",
+      "coach-program",
     ];
     const list = $("#program-list");
     list.innerHTML = "";
@@ -869,6 +872,148 @@
       box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
     }
   }
+
+
+
+  async function loadCoach() {
+    const pid = $("#coach-program").value;
+    const box = $("#coach-hints");
+    const meta = $("#coach-meta");
+    const disc = $("#coach-disclaimer");
+    if (!pid) {
+      box.innerHTML = '<p class="empty-state">Select a program.</p>';
+      meta.textContent = "";
+      disc.textContent = "";
+      return;
+    }
+    box.innerHTML = '<p class="muted">Loading…</p>';
+    try {
+      const data = await api("/api/programs/" + encodeURIComponent(pid) + "/coach");
+      disc.textContent = data.disclaimer || "";
+      const ec = data.evidence_counts || {};
+      meta.textContent =
+        (data.count || 0) +
+        " hints · urls=" +
+        (ec.url || 0) +
+        " · interesting_api=" +
+        (ec.interesting_api || 0) +
+        " · auth_surface=" +
+        (ec.auth_surface || 0) +
+        " · findings=" +
+        (ec.findings_total || 0) +
+        " · llm=" +
+        String(!!data.llm);
+      if (!(data.hints || []).length) {
+        box.innerHTML = '<p class="empty-state">No hints.</p>';
+        return;
+      }
+      let html = "";
+      for (const h of data.hints) {
+        html +=
+          '<article class="coach-card"><span class="kind">' +
+          esc(h.kind) +
+          "</span><h3>" +
+          esc(h.title) +
+          '</h3><p class="body">' +
+          esc(h.body) +
+          "</p>";
+        if (h.evidence_counts) {
+          html +=
+            '<div class="evidence">evidence: ' +
+            esc(JSON.stringify(h.evidence_counts)) +
+            "</div>";
+        }
+        html += "</article>";
+      }
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = '<p class="empty-state">' + esc(e.message || e) + "</p>";
+    }
+  }
+
+  $("#coach-refresh").addEventListener("click", loadCoach);
+  $("#coach-program").addEventListener("change", loadCoach);
+
+  const THEME_KEY = "sentinel_ui_theme";
+  function applyTheme(mode) {
+    const m = mode === "light" ? "light" : "dark";
+    document.body.classList.toggle("theme-light", m === "light");
+    try { localStorage.setItem(THEME_KEY, m); } catch { /* ignore */ }
+    const st = $("#theme-status");
+    if (st) st.textContent = "theme=" + m + " (localStorage stub)";
+  }
+  function initTheme() {
+    let m = "dark";
+    try { m = localStorage.getItem(THEME_KEY) || "dark"; } catch { /* ignore */ }
+    applyTheme(m);
+  }
+  $("#theme-dark").addEventListener("click", () => applyTheme("dark"));
+  $("#theme-light").addEventListener("click", () => applyTheme("light"));
+  initTheme();
+
+  async function loadSettings() {
+    try {
+      const data = await api("/api/settings");
+      $("#settings-env").textContent = JSON.stringify(
+        {
+          SENTINEL_HOME: data.SENTINEL_HOME,
+          bind: data.bind,
+          phase: data.phase,
+          license: data.license,
+          fences: data.fences,
+          theme: data.theme,
+        },
+        null,
+        2
+      );
+      $("#settings-auth").textContent = JSON.stringify(
+        {
+          auth: data.auth,
+          doctor: data.doctor,
+          engines: data.engines,
+        },
+        null,
+        2
+      );
+      if (data.rates_present) {
+        $("#settings-rates").textContent = JSON.stringify(data.rates, null, 2);
+      } else {
+        $("#settings-rates").textContent =
+          "No rates.json under SENTINEL_HOME — rates display absent (honest empty).";
+      }
+    } catch (e) {
+      $("#settings-env").textContent = "Error: " + e.message;
+    }
+  }
+
+  $("#settings-goto-auth").addEventListener("click", () => showView("auth"));
+  $("#settings-clear-auth").addEventListener("click", async () => {
+    const out = $("#settings-action-out");
+    if (
+      !window.confirm(
+        "Clear local UI auth (delete ui_auth.json)? You will need first-run again."
+      )
+    ) {
+      out.textContent = "Cancelled.";
+      return;
+    }
+    try {
+      const data = await api("/api/auth/clear", {
+        method: "POST",
+        body: JSON.stringify({ confirm: true }),
+      });
+      setToken("");
+      out.textContent = JSON.stringify(data, null, 2);
+      await loadSettings();
+      await refreshAuthBanner();
+    } catch (e) {
+      out.textContent =
+        "Error: " +
+        e.message +
+        (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
+      if (e.code === "need_first_run" || e.code === "auth_required") showView("auth");
+    }
+  });
 
 
 })();

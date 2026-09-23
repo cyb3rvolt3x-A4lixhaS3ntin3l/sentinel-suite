@@ -1,4 +1,4 @@
-"""Phase D0–D2 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
+"""Phase D0–D3 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
 
 from __future__ import annotations
 
@@ -16,12 +16,14 @@ from urllib.parse import parse_qs, urlparse
 from sentinel_cli.ui_auth import (
     UIAuthError,
     auth_status,
+    clear_auth,
     extract_bearer,
     login as auth_login,
     logout as auth_logout,
     require_mutating_auth,
     setup_auth,
 )
+from sentinel_cli.ui_coach import coach_payload
 
 # --- Bind gate (mirror collaborator ethics; UI-specific messages) ---
 
@@ -1309,10 +1311,81 @@ def modules_payload() -> dict[str, Any]:
         "installable": False,
         "message": (
             "Read-only catalog of bundled hunt packs (Phase C freeze: 12). "
-            "Install/publish is not available in D2."
+            "Install/publish is not available in Phase D (freeze: 12 packs)."
         ),
     }
 
+
+
+
+def settings_payload(
+    *,
+    bind: str | None = None,
+    port: int | None = None,
+) -> dict[str, Any]:
+    """
+    Read-only Settings chrome: SENTINEL_HOME, bind, auth, doctor/engines, theme stub, rates.
+    """
+    from sentinel_core import (
+        ENGINE_ALLOWLIST,
+        engine_catalog_summary,
+        get_sentinel_home,
+        list_engine_status,
+    )
+
+    home = get_sentinel_home()
+    doctor = doctor_status()
+    auth = auth_status(home)
+    catalog = engine_catalog_summary()
+    rates = None
+    rates_path = home / "rates.json"
+    if rates_path.is_file():
+        try:
+            rates = json.loads(rates_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            rates = {"error": "rates.json present but unreadable", "path": str(rates_path)}
+    else:
+        # Optional per-program rates not aggregated here — honest absent
+        rates = None
+
+    return {
+        "SENTINEL_HOME": str(home),
+        "bind": {
+            "host": bind or DEFAULT_UI_BIND,
+            "port": int(port if port is not None else DEFAULT_UI_PORT),
+            "display": f"{bind or DEFAULT_UI_BIND}:{int(port if port is not None else DEFAULT_UI_PORT)}",
+            "loopback_default": True,
+            "non_loopback_requires": "--i-understand-lab",
+        },
+        "auth": auth,
+        "doctor": {
+            "ok": doctor.get("ok"),
+            "status": doctor.get("status"),
+            "detail": doctor.get("detail"),
+        },
+        "engines": {
+            "allowlist": dict(ENGINE_ALLOWLIST),
+            "allowlisted": list(catalog.get("allowlisted") or []),
+            "status_rows": list_engine_status(home),
+            "note": "ENGINE_ALLOWLIST stays {} — no pins in Phase D.",
+        },
+        "theme": {
+            "stub": True,
+            "modes": ["dark", "light"],
+            "storage_key": "sentinel_ui_theme",
+            "note": "Client-only CSS class / localStorage — no server preference store in D3.",
+        },
+        "rates": rates,
+        "rates_present": rates is not None,
+        "phase": "D3",
+        "license": "MIT",
+        "fences": {
+            "tauri": False,
+            "electron": False,
+            "guard_sdk": False,
+            "llm_coach": False,
+        },
+    }
 
 
 _MUTATING_PREFIXES = (
@@ -1320,6 +1393,8 @@ _MUTATING_PREFIXES = (
     "/api/pack/stop",
     "/api/hunt/pack-run",
     "/api/confirm-finding",
+    "/api/auth/clear",
+    "/api/auth/clear-password",
 )
 
 
@@ -1334,6 +1409,8 @@ def _is_mutating_path(path: str, method: str) -> bool:
             ):
                 return True
         if path == "/api/confirm-finding":
+            return True
+        if path in ("/api/auth/clear", "/api/auth/clear-password"):
             return True
     if method == "PUT":
         if path.endswith("/scope"):
@@ -1483,6 +1560,10 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 token = extract_bearer(self.headers) or body.get("token")
                 self._send_json(200, auth_logout(str(token) if token else None))
                 return
+            if path in ("/api/auth/clear", "/api/auth/clear-password"):
+                result = clear_auth(confirm=bool(body.get("confirm")))
+                self._send_json(200, result)
+                return
             if path == "/api/confirm-finding":
                 result = confirm_finding_action(body)
                 self._send_json(200, {"ok": True, "result": result})
@@ -1555,13 +1636,16 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/auth/status":
                 self._send_json(200, auth_status())
                 return
+            if path == "/api/settings":
+                self._send_json(200, settings_payload())
+                return
             if path == "/api/health":
                 self._send_json(
                     200,
                     {
                         "ok": True,
                         "service": "sentinel-ui",
-                        "phase": "D2",
+                        "phase": "D3",
                         "default_bind": DEFAULT_UI_BIND,
                         "default_port": DEFAULT_UI_PORT,
                     },
@@ -1634,6 +1718,16 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 pid = parts[2]
                 window = (qs.get("window") or ["24h"])[0]
                 self._send_json(200, changes_payload(pid, window=window))
+                return
+
+            # /api/programs/<id>/coach
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "coach"
+            ):
+                self._send_json(200, coach_payload(parts[2]))
                 return
 
             # /api/programs/<id>/report
@@ -1731,7 +1825,7 @@ def serve_ui(
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "D2",
+        "phase": "D3",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
     print(f"Sentinel UI → {url}", flush=True)
@@ -1760,6 +1854,8 @@ __all__ = [
     "modules_payload",
     "changes_payload",
     "assets_payload",
+    "coach_payload",
+    "settings_payload",
     "programs_payload",
     "report_payload",
     "resolve_ui_static_root",

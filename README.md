@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase D1 shipped** — Hunt/Scope/Reports + confirm-finding UX + optional bcrypt first-run on `sentinel ui` → **http://127.0.0.1:8888**; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, full coach UI, Tauri wrap, bcrypt first-run auth, PyPI publish |
+| **Status** | **Phase D3 shipped** — Coach (rule/count methodology hints, no LLM) + Settings chrome on `sentinel ui` → **http://127.0.0.1:8888**; D0–D2 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, Tauri wrap, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -124,7 +124,9 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 - Plan: [`docs/PHASE_D_PLAN.md`](docs/PHASE_D_PLAN.md) (full: `/workspace/deliverables/SENTINEL_SUITE_PHASE_D_PLAN.md` on builder box)
 - D0 shell: [`docs/PHASE_D_SLICE0.md`](docs/PHASE_D_SLICE0.md) — `sentinel ui` → `http://127.0.0.1:8888`
 - D1 polish: [`docs/PHASE_D_SLICE1.md`](docs/PHASE_D_SLICE1.md) — Hunt/Scope/Reports, confirm-finding, optional `ui_auth.json` bcrypt / skip-lab
-- Non-goals v1: Burp replacement, team mode, cloud sync, Electron
+- D2: [`docs/PHASE_D_SLICE2.md`](docs/PHASE_D_SLICE2.md) — Assets / Changes / Modules
+- D3: [`docs/PHASE_D_SLICE3.md`](docs/PHASE_D_SLICE3.md) — Coach + Settings (no LLM; never invents findings)
+- Non-goals v1: Burp replacement, team mode, cloud sync, Electron; Tauri deferred (D4 proposal)
 
 ## License
 

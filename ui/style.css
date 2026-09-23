@@ -108,3 +108,30 @@ button.danger {
   background: #1a2433; color: var(--accent); border: 1px solid var(--border);
 }
 .empty-state { color: var(--muted); padding: 1rem 0.25rem; font-size: 0.9rem; }
+
+
+/* D3 additions */
+.coach-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.coach-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1rem;
+}
+.coach-card .kind {
+  display: inline-block; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--accent); border: 1px solid var(--border);
+  padding: 0.1rem 0.45rem; border-radius: 999px; margin-bottom: 0.35rem;
+}
+.coach-card h3 { margin: 0.25rem 0 0.5rem; font-size: 1.05rem; }
+.coach-card .body { margin: 0; white-space: pre-wrap; color: #c9d6e8; font-size: 0.88rem; }
+.coach-card .evidence {
+  margin-top: 0.65rem; font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+}
+body.theme-light {
+  --bg: #f4f6fa; --panel: #ffffff; --border: #d5dde8; --text: #1a2332;
+  --muted: #5a6b80; --accent: #2f6fed; --ok: #1f9d63; --warn: #b58110; --bad: #d64545;
+}
+body.theme-light .top { background: #eef2f8; }
+body.theme-light .bind-pill { background: #e6f5ec; border-color: #b7e0c6; color: #1f9d63; }
+body.theme-light .mono, body.theme-light .coach-card .body { color: #2a3548; }
+body.theme-light input, body.theme-light select, body.theme-light button,
+body.theme-light .mono-input { background: #fff; }

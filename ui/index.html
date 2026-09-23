@@ -10,7 +10,7 @@
   <header class="top">
     <div class="brand">
       <strong>Sentinel Suite</strong>
-      <span class="muted">local UI · Phase D2</span>
+      <span class="muted">local UI · Phase D3</span>
     </div>
     <nav>
       <button type="button" data-view="home" class="nav active">Home</button>
@@ -23,6 +23,8 @@
       <button type="button" data-view="assets" class="nav">Assets</button>
       <button type="button" data-view="changes" class="nav">Changes</button>
       <button type="button" data-view="modules" class="nav">Modules</button>
+      <button type="button" data-view="coach" class="nav">Coach</button>
+      <button type="button" data-view="settings" class="nav">Settings</button>
       <button type="button" data-view="auth" class="nav">Auth</button>
     </nav>
     <div class="bind-pill" title="Loopback-only by default">127.0.0.1:8888</div>
@@ -291,6 +293,61 @@
       <div id="modules-table" class="card"></div>
     </section>
 
+
+    <section id="view-coach" class="view hidden">
+      <h1>Coach</h1>
+      <p class="lede">
+        Methodology tutor for <strong>this program</strong> — stage checklist, pack-order
+        rules from graph counts, FP school, report-school impact templates, Eye time-budget.
+        <strong>No LLM.</strong> Never invents findings; only cites store evidence counts.
+      </p>
+      <div class="row">
+        <label>Program
+          <select id="coach-program"></select>
+        </label>
+        <button type="button" id="coach-refresh">Refresh hints</button>
+      </div>
+      <p id="coach-meta" class="muted small"></p>
+      <p id="coach-disclaimer" class="lede warn"></p>
+      <div id="coach-hints" class="coach-list"></div>
+    </section>
+
+    <section id="view-settings" class="view hidden">
+      <h1>Settings</h1>
+      <p class="lede">
+        Local chrome — SENTINEL_HOME, bind, auth, doctor/engines (allowlist still empty),
+        theme stub, rates if present. Mutating auth clear stays behind bcrypt when set.
+      </p>
+      <div class="grid two">
+        <article class="card">
+          <h2>Environment</h2>
+          <pre id="settings-env" class="mono">Loading…</pre>
+        </article>
+        <article class="card">
+          <h2>Auth &amp; engines</h2>
+          <pre id="settings-auth" class="mono">Loading…</pre>
+          <div class="row" style="margin-top:0.75rem">
+            <button type="button" id="settings-clear-auth" class="danger">Clear password / auth</button>
+            <button type="button" id="settings-goto-auth" class="ghost">Open Auth tab</button>
+          </div>
+          <pre id="settings-action-out" class="mono"></pre>
+        </article>
+        <article class="card">
+          <h2>Theme stub</h2>
+          <p class="muted small">Client-only (localStorage). No server preference in D3.</p>
+          <div class="row">
+            <button type="button" id="theme-dark">Dark</button>
+            <button type="button" id="theme-light">Light</button>
+          </div>
+          <p id="theme-status" class="muted small"></p>
+        </article>
+        <article class="card">
+          <h2>Rates</h2>
+          <pre id="settings-rates" class="mono">Loading…</pre>
+        </article>
+      </div>
+    </section>
+
     <section id="view-auth" class="view hidden">
       <h1>Local auth (optional)</h1>
       <p class="lede">
@@ -322,7 +379,7 @@
   <datalist id="program-list"></datalist>
 
   <footer class="foot">
-    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D2</span>
+    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D3</span>
   </footer>
   <script src="/app.js"></script>
 </body>

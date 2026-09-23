@@ -204,6 +204,48 @@ def logout(token: str | None) -> dict[str, Any]:
     return {"ok": True}
 
 
+
+def clear_auth(
+    *,
+    home: Path | None = None,
+    confirm: bool = False,
+) -> dict[str, Any]:
+    """
+    Clear local UI auth (delete ui_auth.json) and wipe in-process sessions.
+
+    Requires confirm=True. Caller must enforce mutating auth gate when password mode.
+    """
+    if not confirm:
+        raise UIAuthError(
+            "clear auth requires confirm=true",
+            status=400,
+            code="confirm_required",
+        )
+    path = auth_file_path(home)
+    existed = path.is_file()
+    mode = None
+    if existed:
+        cfg = load_auth_config(home) or {}
+        mode = cfg.get("mode")
+        try:
+            path.unlink()
+        except OSError as exc:
+            raise UIAuthError(
+                f"failed to remove {path.name}: {exc}",
+                status=500,
+                code="clear_failed",
+            ) from exc
+    clear_sessions()
+    return {
+        "ok": True,
+        "cleared": existed,
+        "previous_mode": mode,
+        "path": str(path),
+        "need_first_run": True,
+        "message": "UI auth cleared — first-run required before mutating routes.",
+    }
+
+
 def clear_sessions() -> None:
     """Test helper."""
     with _sessions_lock:
@@ -269,6 +311,7 @@ __all__ = [
     "UIAuthError",
     "auth_file_path",
     "auth_status",
+    "clear_auth",
     "clear_sessions",
     "extract_bearer",
     "load_auth_config",

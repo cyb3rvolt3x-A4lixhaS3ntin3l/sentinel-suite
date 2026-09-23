@@ -241,7 +241,7 @@ def test_api_assets_changes_modules_routes(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] == "D2"
+    assert health["phase"] in ("D2", "D3")
 
     code, assets = _http_json(f"{base}/api/programs/d2demo/assets")
     assert code == 200, assets
@@ -327,7 +327,7 @@ def test_assets_changes_modules_ro_without_auth(home):
 def test_spa_mentions_d2_screens():
     root = resolve_ui_static_root()
     html = (root / "index.html").read_text(encoding="utf-8")
-    assert "Phase D2" in html
+    assert "Phase D2" in html or "Phase D3" in html
     assert "view-assets" in html
     assert "view-changes" in html
     assert "view-modules" in html
