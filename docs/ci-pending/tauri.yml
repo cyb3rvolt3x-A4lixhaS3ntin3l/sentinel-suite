@@ -1,0 +1,26 @@
+# PENDING — do NOT push to .github/workflows while workflow OAuth HOLD.
+# Proposed Phase D4 packaging job for Founder review once OAuth unblocked.
+name: tauri-packaging
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src-tauri/**"
+      - "ui/**"
+      - "scripts/tauri_dry_run.py"
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Tauri scaffold dry-run
+        run: python scripts/tauri_dry_run.py
+
+  # Full matrix build intentionally omitted until OAuth + platform secrets ready.
+  # Targets when enabled: macos-latest (.dmg), windows-latest (.msi), ubuntu-latest (.AppImage)

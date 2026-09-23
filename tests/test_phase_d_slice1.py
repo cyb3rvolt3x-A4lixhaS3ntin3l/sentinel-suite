@@ -402,7 +402,7 @@ def test_spa_mentions_d1_screens():
     root = resolve_ui_static_root()
     html = (root / "index.html").read_text(encoding="utf-8")
     # D2 supersedes banner text; D1 screens must remain.
-    assert "Phase D1" in html or "Phase D2" in html or "Phase D3" in html
+    assert "Phase D1" in html or "Phase D2" in html or "Phase D3" in html or "Phase D4" in html
     assert "view-scope" in html
     assert "view-reports" in html
     assert "confirm-form" in html

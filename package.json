@@ -1,0 +1,12 @@
+{
+  "name": "sentinel-suite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sentinel Suite — npm scripts for Tauri dry-run / desk shell (no Electron)",
+  "license": "MIT",
+  "scripts": {
+    "tauri:dry-run": "python scripts/tauri_dry_run.py",
+    "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build"
+  }
+}

@@ -1,4 +1,4 @@
-/* Sentinel Suite Phase D3 — tiny SPA (no build step). */
+/* Sentinel Suite Phase D4 — tiny SPA (no build step). */
 (function () {
   const $ = (sel) => document.querySelector(sel);
   const TOKEN_KEY = "sentinel_ui_token";
@@ -54,6 +54,10 @@
     if (name === "modules") loadModules();
     if (name === "coach") loadCoach();
     if (name === "settings") loadSettings();
+    if (name === "osint") loadOsint();
+    if (name === "surface") loadSurface();
+    if (name === "authlab") loadAuthLab();
+    if (name === "workbench") loadWorkbench();
   }
 
   document.querySelectorAll("nav button.nav").forEach((btn) => {
@@ -1013,6 +1017,477 @@
         (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
       if (e.code === "need_first_run" || e.code === "auth_required") showView("auth");
     }
+  });
+
+
+
+  // --- Phase D4: OSINT / Surface / Auth lab / Workbench / Ctrl+K ---
+
+  async function fillProgramSelect(sel) {
+    const data = await api("/api/programs");
+    const programs = data.programs || [];
+    sel.innerHTML = programs
+      .map((p) => "<option value=\"" + esc(p.id) + "\">" + esc(p.id) + "</option>")
+      .join("");
+    if (!programs.length) {
+      sel.innerHTML = "<option value=\"\">(no programs)</option>";
+    }
+    return programs;
+  }
+
+  async function loadOsint() {
+    const sel = $("#osint-program");
+    if (!sel.options.length) await fillProgramSelect(sel);
+    const pid = sel.value;
+    const box = $("#osint-table");
+    const svgBox = $("#osint-svg");
+    const counts = $("#osint-counts");
+    if (!pid) {
+      box.innerHTML = "<p class=\"empty-state\">No programs yet.</p>";
+      svgBox.innerHTML = "";
+      return;
+    }
+    const kinds = $("#osint-kinds").value;
+    const q = $("#osint-q").value.trim();
+    const qs =
+      "?kinds=" + encodeURIComponent(kinds) + "&q=" + encodeURIComponent(q);
+    try {
+      const data = await api("/api/programs/" + encodeURIComponent(pid) + "/osint-graph" + qs);
+      counts.textContent = data.empty
+        ? data.message || "Empty graph"
+        : "nodes=" +
+          data.counts.nodes +
+          " edges=" +
+          data.counts.edges +
+          " · " +
+          Object.keys(data.tables)
+            .map((k) => k + "=" + data.counts[k])
+            .join(" · ");
+      if (data.empty) {
+        box.innerHTML = "<p class=\"empty-state\">" + esc(data.message) + "</p>";
+        svgBox.innerHTML = "<p class=\"empty-state\">No nodes to draw.</p>";
+        return;
+      }
+      // SVG from layout
+      const layout = data.layout || [];
+      const edges = data.edges || [];
+      const idPos = {};
+      layout.forEach((n) => {
+        idPos[n.id] = n;
+      });
+      let maxX = 400,
+        maxY = 200;
+      layout.forEach((n) => {
+        maxX = Math.max(maxX, n.x + 120);
+        maxY = Math.max(maxY, n.y + 40);
+      });
+      let svg =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 " +
+        maxX +
+        " " +
+        maxY +
+        "\">";
+      edges.forEach((e) => {
+        const a = idPos[e.from];
+        const b = idPos[e.to];
+        if (!a || !b) return;
+        svg +=
+          "<line class=\"viz-edge\" x1=\"" +
+          (a.x + 40) +
+          "\" y1=\"" +
+          (a.y + 12) +
+          "\" x2=\"" +
+          (b.x + 40) +
+          "\" y2=\"" +
+          (b.y + 12) +
+          "\" />";
+      });
+      layout.forEach((n) => {
+        svg +=
+          "<rect class=\"viz-node\" x=\"" +
+          n.x +
+          "\" y=\"" +
+          n.y +
+          "\" width=\"100\" height=\"28\" rx=\"6\" />";
+        svg +=
+          "<text class=\"viz-label\" x=\"" +
+          (n.x + 6) +
+          "\" y=\"" +
+          (n.y + 18) +
+          "\">" +
+          esc(n.label) +
+          "</text>";
+      });
+      svg += "</svg>";
+      svgBox.innerHTML = svg;
+
+      let html = "";
+      Object.keys(data.tables).forEach((bucket) => {
+        const rows = data.tables[bucket] || [];
+        if (!rows.length) return;
+        html += "<h3>" + esc(bucket) + " (" + rows.length + ")</h3>";
+        html +=
+          "<table><thead><tr><th>Label</th><th>Type</th><th>Confidence</th></tr></thead><tbody>";
+        rows.forEach((r) => {
+          html +=
+            "<tr><td>" +
+            esc(r.label) +
+            "</td><td>" +
+            esc(r.type) +
+            "</td><td>" +
+            esc(r.confidence) +
+            "</td></tr>";
+        });
+        html += "</tbody></table>";
+      });
+      box.innerHTML = html || "<p class=\"empty-state\">No rows match filters.</p>";
+    } catch (e) {
+      box.innerHTML = "<p class=\"empty-state\">Error: " + esc(e.message) + "</p>";
+    }
+  }
+  $("#osint-refresh").addEventListener("click", loadOsint);
+  $("#osint-kinds").addEventListener("change", loadOsint);
+  $("#osint-program").addEventListener("change", loadOsint);
+  $("#osint-q").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loadOsint();
+  });
+
+  async function loadSurface() {
+    const sel = $("#surface-program");
+    if (!sel.options.length) await fillProgramSelect(sel);
+    const pid = sel.value;
+    const box = $("#surface-table");
+    const counts = $("#surface-counts");
+    if (!pid) {
+      box.innerHTML = "<p class=\"empty-state\">No programs yet.</p>";
+      return;
+    }
+    const kind = $("#surface-kind").value;
+    const q = $("#surface-q").value.trim();
+    const qs =
+      "?kind=" + encodeURIComponent(kind) + "&q=" + encodeURIComponent(q);
+    try {
+      const data = await api(
+        "/api/programs/" + encodeURIComponent(pid) + "/surface" + qs
+      );
+      counts.textContent = data.empty
+        ? data.message || "Empty"
+        : "count=" +
+          data.count +
+          " · " +
+          Object.keys(data.counts)
+            .map((k) => k + "=" + data.counts[k])
+            .join(" · ");
+      if (data.empty) {
+        box.innerHTML = "<p class=\"empty-state\">" + esc(data.message) + "</p>";
+        return;
+      }
+      let html =
+        "<table><thead><tr><th>Kind</th><th>Name</th><th>Detail</th></tr></thead><tbody>";
+      (data.items || []).forEach((it) => {
+        const detail = [it.method, it.host, it.path, it.in, it.url]
+          .filter(Boolean)
+          .join(" · ");
+        html +=
+          "<tr><td>" +
+          esc(it.kind) +
+          "</td><td>" +
+          esc(it.name) +
+          "</td><td class=\"small\">" +
+          esc(detail) +
+          "</td></tr>";
+      });
+      html += "</tbody></table>";
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = "<p class=\"empty-state\">Error: " + esc(e.message) + "</p>";
+    }
+  }
+  $("#surface-refresh").addEventListener("click", loadSurface);
+  $("#surface-kind").addEventListener("change", loadSurface);
+  $("#surface-program").addEventListener("change", loadSurface);
+  $("#surface-q").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loadSurface();
+  });
+
+  async function loadAuthLab() {
+    const sel = $("#authlab-program");
+    if (!sel.options.length) await fillProgramSelect(sel);
+    const pid = sel.value;
+    const box = $("#authlab-body");
+    if (!pid) {
+      box.innerHTML = "<p class=\"empty-state\">No programs yet.</p>";
+      return;
+    }
+    try {
+      const data = await api(
+        "/api/programs/" + encodeURIComponent(pid) + "/auth-lab"
+      );
+      if (data.empty) {
+        box.innerHTML =
+          "<p class=\"empty-state\">" + esc(data.message || "Empty vault") + "</p>";
+        return;
+      }
+      let html = "";
+      ["a", "b"].forEach((letter) => {
+        const r = (data.roles || {})[letter] || {};
+        html += "<article class=\"card auth-role-card\">";
+        html += "<h3>Role " + letter.toUpperCase() + "</h3>";
+        html +=
+          "<p class=\"muted small\">" +
+          esc(r.rel) +
+          " · exists=" +
+          !!r.exists +
+          " · usable=" +
+          !!r.usable +
+          "</p>";
+        if (r.message) html += "<p class=\"empty-state\">" + esc(r.message) + "</p>";
+        if (r.error) html += "<p class=\"status-fail\">" + esc(r.error) + "</p>";
+        html +=
+          "<pre class=\"mono\">" +
+          esc(
+            JSON.stringify(
+              {
+                cookie_keys: r.cookie_keys,
+                header_keys: r.header_keys,
+                has_bearer: r.has_bearer,
+                bearer_preview: r.bearer_preview,
+                replay_stub: r.replay_stub,
+              },
+              null,
+              2
+            )
+          ) +
+          "</pre>";
+        html += "</article>";
+      });
+      html +=
+        "<p class=\"muted small\">" + esc(data.disclaimer || "") + "</p>";
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = "<p class=\"empty-state\">Error: " + esc(e.message) + "</p>";
+    }
+  }
+  $("#authlab-refresh").addEventListener("click", loadAuthLab);
+  $("#authlab-program").addEventListener("change", loadAuthLab);
+
+  async function loadWorkbench() {
+    const sel = $("#wb-program");
+    if (!sel.options.length) await fillProgramSelect(sel);
+  }
+
+  function wbPayload(extra) {
+    let headers = {};
+    try {
+      headers = JSON.parse($("#wb-headers").value || "{}");
+    } catch (e) {
+      throw new Error("headers must be valid JSON object");
+    }
+    const bodyRaw = $("#wb-body").value;
+    const out = {
+      program_id: $("#wb-program").value,
+      method: $("#wb-method").value,
+      url: $("#wb-url").value.trim(),
+      headers: headers,
+      body: bodyRaw || null,
+      i_own_this: $("#wb-own").checked,
+      format: $("#wb-format").value,
+    };
+    return Object.assign(out, extra || {});
+  }
+
+  $("#wb-export").addEventListener("click", async () => {
+    const out = $("#wb-out");
+    try {
+      const data = await api("/api/workbench/export", {
+        method: "POST",
+        body: JSON.stringify(wbPayload()),
+      });
+      out.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.textContent =
+        "Error: " + e.message + (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
+    }
+  });
+
+  $("#wb-send").addEventListener("click", async () => {
+    const out = $("#wb-out");
+    try {
+      const body = wbPayload();
+      if (!body.i_own_this) {
+        out.textContent =
+          "Refused: check i_own_this (ownership acknowledgment required for live send).";
+        return;
+      }
+      if (
+        !window.confirm(
+          "Live workbench send to " +
+            body.url +
+            "?\nRequires in-scope host + ownership. Not a finding."
+        )
+      ) {
+        out.textContent = "Cancelled.";
+        return;
+      }
+      const data = await api("/api/workbench/send", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      out.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      out.textContent =
+        "Error: " +
+        e.message +
+        (e.data ? "\n" + JSON.stringify(e.data, null, 2) : "");
+      if (e.code === "need_first_run" || e.code === "auth_required") showView("auth");
+    }
+  });
+
+  // Ctrl/Cmd+K command palette
+  const TABS = [
+    { id: "home", label: "Home", kind: "tab" },
+    { id: "programs", label: "Programs", kind: "tab" },
+    { id: "packs", label: "Packs", kind: "tab" },
+    { id: "hunt", label: "Hunt", kind: "tab" },
+    { id: "scope", label: "Scope", kind: "tab" },
+    { id: "findings", label: "Findings", kind: "tab" },
+    { id: "reports", label: "Reports", kind: "tab" },
+    { id: "assets", label: "Assets", kind: "tab" },
+    { id: "changes", label: "Changes", kind: "tab" },
+    { id: "modules", label: "Modules", kind: "tab" },
+    { id: "osint", label: "OSINT graph", kind: "tab" },
+    { id: "surface", label: "Surface map", kind: "tab" },
+    { id: "authlab", label: "Auth lab", kind: "tab" },
+    { id: "workbench", label: "Workbench", kind: "tab" },
+    { id: "coach", label: "Coach", kind: "tab" },
+    { id: "settings", label: "Settings", kind: "tab" },
+    { id: "auth", label: "Auth", kind: "tab" },
+  ];
+  let cmdItems = TABS.slice();
+  let cmdActive = 0;
+
+  async function refreshCmdCatalog() {
+    cmdItems = TABS.slice();
+    try {
+      const [progs, packs] = await Promise.all([
+        api("/api/programs"),
+        api("/api/packs"),
+      ]);
+      (progs.programs || []).forEach((p) => {
+        cmdItems.push({
+          id: "programs",
+          label: "Program " + p.id,
+          kind: "program",
+          hint: p.name || p.id,
+        });
+      });
+      (packs.packs || []).forEach((pk) => {
+        cmdItems.push({
+          id: "hunt",
+          label: "Pack " + pk.id,
+          kind: "pack",
+          hint: pk.pack_class || "",
+        });
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function renderCmd(q) {
+    const ql = (q || "").trim().toLowerCase();
+    const filtered = cmdItems.filter((it) => {
+      if (!ql) return it.kind === "tab";
+      return (
+        it.label.toLowerCase().includes(ql) ||
+        (it.hint || "").toLowerCase().includes(ql) ||
+        it.kind.includes(ql)
+      );
+    });
+    const ul = $("#cmd-results");
+    cmdActive = 0;
+    ul.innerHTML = filtered
+      .slice(0, 40)
+      .map(
+        (it, i) =>
+          "<li data-idx=\"" +
+          i +
+          "\" data-view=\"" +
+          esc(it.id) +
+          "\" class=\"" +
+          (i === 0 ? "active" : "") +
+          "\"><span>" +
+          esc(it.label) +
+          "</span><span class=\"hint\">" +
+          esc(it.kind + (it.hint ? " · " + it.hint : "")) +
+          "</span></li>"
+      )
+      .join("");
+    ul._filtered = filtered.slice(0, 40);
+  }
+
+  function openCmd() {
+    const pal = $("#cmd-palette");
+    pal.classList.remove("hidden");
+    $("#cmd-input").value = "";
+    refreshCmdCatalog().then(() => {
+      renderCmd("");
+      $("#cmd-input").focus();
+    });
+  }
+  function closeCmd() {
+    $("#cmd-palette").classList.add("hidden");
+  }
+  function runCmdSelected() {
+    const list = $("#cmd-results")._filtered || [];
+    const it = list[cmdActive];
+    if (!it) return;
+    closeCmd();
+    showView(it.id);
+  }
+
+  document.addEventListener("keydown", (ev) => {
+    const meta = ev.ctrlKey || ev.metaKey;
+    if (meta && (ev.key === "k" || ev.key === "K")) {
+      ev.preventDefault();
+      if ($("#cmd-palette").classList.contains("hidden")) openCmd();
+      else closeCmd();
+      return;
+    }
+    if ($("#cmd-palette").classList.contains("hidden")) return;
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      closeCmd();
+    } else if (ev.key === "ArrowDown") {
+      ev.preventDefault();
+      const list = $("#cmd-results")._filtered || [];
+      cmdActive = Math.min(cmdActive + 1, Math.max(0, list.length - 1));
+      renderCmdHighlight();
+    } else if (ev.key === "ArrowUp") {
+      ev.preventDefault();
+      cmdActive = Math.max(0, cmdActive - 1);
+      renderCmdHighlight();
+    } else if (ev.key === "Enter") {
+      ev.preventDefault();
+      runCmdSelected();
+    }
+  });
+
+  function renderCmdHighlight() {
+    document.querySelectorAll("#cmd-results li").forEach((li, i) => {
+      li.classList.toggle("active", i === cmdActive);
+    });
+  }
+
+  $("#cmd-input").addEventListener("input", (ev) => renderCmd(ev.target.value));
+  $("#cmd-results").addEventListener("click", (ev) => {
+    const li = ev.target.closest("li");
+    if (!li) return;
+    cmdActive = Number(li.getAttribute("data-idx") || 0);
+    runCmdSelected();
+  });
+  $("#cmd-palette").addEventListener("click", (ev) => {
+    if (ev.target.id === "cmd-palette") closeCmd();
   });
 
 

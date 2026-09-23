@@ -29,4 +29,4 @@ sentinel ui   # http://127.0.0.1:8888
 
 ## Next
 
-**D4 (propose only)** — Tauri wrap of same SPA; deferred screens (OSINT graph viz, Surface, Auth lab, Workbench). Wait for Founder GO.
+**D4 shipped** — see [`PHASE_D_SLICE4.md`](PHASE_D_SLICE4.md) (Tauri scaffold + deferred screens).

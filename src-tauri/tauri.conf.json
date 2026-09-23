@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sentinel Suite",
+  "version": "0.1.0",
+  "identifier": "com.sentinel.suite.ui",
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://127.0.0.1:8888",
+    "beforeBuildCommand": "",
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Sentinel Suite (local)",
+        "width": 1280,
+        "height": 860,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "msi", "appimage"],
+    "icon": [
+      "icons/icon.png"
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "Authorized OSINT + hunt packs local UI",
+    "longDescription": "Desktop wrap around sentinel ui (http://127.0.0.1:8888). Browser remains first-class. No Electron."
+  },
+  "plugins": {}
+}

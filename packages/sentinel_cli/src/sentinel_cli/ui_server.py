@@ -1,4 +1,4 @@
-"""Phase D0–D3 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
+"""Phase D0–D4 — local UI shell (stdlib HTTP, bind 127.0.0.1:8888 by default)."""
 
 from __future__ import annotations
 
@@ -24,6 +24,14 @@ from sentinel_cli.ui_auth import (
     setup_auth,
 )
 from sentinel_cli.ui_coach import coach_payload
+from sentinel_cli.ui_d4 import (
+    auth_lab_payload,
+    osint_graph_payload,
+    surface_payload,
+    tauri_status_payload,
+    workbench_export,
+    workbench_send,
+)
 
 # --- Bind gate (mirror collaborator ethics; UI-specific messages) ---
 
@@ -1373,14 +1381,15 @@ def settings_payload(
             "stub": True,
             "modes": ["dark", "light"],
             "storage_key": "sentinel_ui_theme",
-            "note": "Client-only CSS class / localStorage — no server preference store in D3.",
+            "note": "Client-only CSS class / localStorage — no server preference store in D4.",
         },
         "rates": rates,
         "rates_present": rates is not None,
-        "phase": "D3",
+        "phase": "D4",
         "license": "MIT",
         "fences": {
-            "tauri": False,
+            "tauri": True,
+            "tauri_scaffold": True,
             "electron": False,
             "guard_sdk": False,
             "llm_coach": False,
@@ -1395,6 +1404,7 @@ _MUTATING_PREFIXES = (
     "/api/confirm-finding",
     "/api/auth/clear",
     "/api/auth/clear-password",
+    "/api/workbench/send",
 )
 
 
@@ -1581,6 +1591,14 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(200, stop_pack_run(body))
                 return
 
+            if path == "/api/workbench/export":
+                self._send_json(200, workbench_export(body))
+                return
+
+            if path == "/api/workbench/send":
+                self._send_json(200, workbench_send(body))
+                return
+
             parts = path.strip("/").split("/")
             # /api/programs/<id>/scope/brief
             if (
@@ -1639,13 +1657,16 @@ class UIRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/settings":
                 self._send_json(200, settings_payload())
                 return
+            if path == "/api/tauri/status":
+                self._send_json(200, tauri_status_payload())
+                return
             if path == "/api/health":
                 self._send_json(
                     200,
                     {
                         "ok": True,
                         "service": "sentinel-ui",
-                        "phase": "D3",
+                        "phase": "D4",
                         "default_bind": DEFAULT_UI_BIND,
                         "default_port": DEFAULT_UI_PORT,
                     },
@@ -1718,6 +1739,42 @@ class UIRequestHandler(BaseHTTPRequestHandler):
                 pid = parts[2]
                 window = (qs.get("window") or ["24h"])[0]
                 self._send_json(200, changes_payload(pid, window=window))
+                return
+
+            # /api/programs/<id>/osint-graph
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "osint-graph"
+            ):
+                pid = parts[2]
+                kinds = (qs.get("kinds") or qs.get("kind") or ["all"])[0]
+                q = (qs.get("q") or [""])[0]
+                self._send_json(200, osint_graph_payload(pid, kinds=kinds, q=q))
+                return
+
+            # /api/programs/<id>/surface
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "surface"
+            ):
+                pid = parts[2]
+                kind = (qs.get("kind") or ["all"])[0]
+                q = (qs.get("q") or [""])[0]
+                self._send_json(200, surface_payload(pid, kind=kind, q=q))
+                return
+
+            # /api/programs/<id>/auth-lab
+            if (
+                len(parts) == 4
+                and parts[0] == "api"
+                and parts[1] == "programs"
+                and parts[3] == "auth-lab"
+            ):
+                self._send_json(200, auth_lab_payload(parts[2]))
                 return
 
             # /api/programs/<id>/coach
@@ -1825,7 +1882,7 @@ def serve_ui(
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "D3",
+        "phase": "D4",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
     print(f"Sentinel UI → {url}", flush=True)
@@ -1856,6 +1913,12 @@ __all__ = [
     "assets_payload",
     "coach_payload",
     "settings_payload",
+    "osint_graph_payload",
+    "surface_payload",
+    "auth_lab_payload",
+    "workbench_export",
+    "workbench_send",
+    "tauri_status_payload",
     "programs_payload",
     "report_payload",
     "resolve_ui_static_root",

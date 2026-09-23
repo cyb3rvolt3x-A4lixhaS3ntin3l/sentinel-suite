@@ -135,3 +135,36 @@ body.theme-light .bind-pill { background: #e6f5ec; border-color: #b7e0c6; color:
 body.theme-light .mono, body.theme-light .coach-card .body { color: #2a3548; }
 body.theme-light input, body.theme-light select, body.theme-light button,
 body.theme-light .mono-input { background: #fff; }
+
+/* D4 additions */
+.viz-box {
+  min-height: 220px; max-height: 420px; overflow: auto;
+  background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem;
+}
+.viz-box svg { width: 100%; min-height: 200px; }
+.viz-node { fill: #1a2a44; stroke: var(--accent); stroke-width: 1.5; }
+.viz-label { fill: var(--text); font-size: 10px; font-family: var(--mono); }
+.viz-edge { stroke: #3a4a60; stroke-width: 1; fill: none; }
+.auth-role-card h3 { margin: 0 0 0.5rem; }
+.cmd-palette {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 12vh; z-index: 100;
+}
+.cmd-panel {
+  width: min(560px, 92vw); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0.75rem; box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+}
+.cmd-panel input {
+  width: 100%; font-size: 1rem; margin-bottom: 0.5rem;
+}
+.cmd-results { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
+.cmd-results li {
+  padding: 0.55rem 0.65rem; border-radius: 6px; cursor: pointer;
+  display: flex; justify-content: space-between; gap: 0.5rem; color: var(--text);
+}
+.cmd-results li:hover, .cmd-results li.active { background: #1a2a44; }
+.cmd-results .hint { color: var(--muted); font-size: 0.75rem; }
+body.theme-light .viz-box { background: #f0f3f8; }
+body.theme-light .cmd-results li:hover,
+body.theme-light .cmd-results li.active { background: #e8eef8; }

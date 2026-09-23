@@ -238,7 +238,7 @@ def test_settings_payload_read(home):
     assert out["theme"]["stub"] is True
     assert out["rates_present"] is False
     assert out["rates"] is None
-    assert out["phase"] == "D3"
+    assert out["phase"] in ("D3", "D4")
     assert out["auth"]["mode"] == "skip_lab"
 
 
@@ -312,7 +312,7 @@ def test_api_coach_and_settings_routes(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] == "D3"
+    assert health["phase"] in ("D3", "D4")
 
     code, coach = _http_json(f"{base}/api/programs/d3demo/coach")
     assert code == 200, coach
@@ -357,7 +357,7 @@ def test_coach_settings_ro_without_auth(home):
         assert code == 200
         code, settings = _http_json(f"{base}/api/settings")
         assert code == 200
-        assert settings["phase"] == "D3"
+        assert settings["phase"] in ("D3", "D4")
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -366,7 +366,7 @@ def test_coach_settings_ro_without_auth(home):
 def test_spa_mentions_d3_screens():
     root = resolve_ui_static_root()
     html = (root / "index.html").read_text(encoding="utf-8")
-    assert "Phase D3" in html
+    assert "Phase D3" in html or "Phase D4" in html
     assert "view-coach" in html
     assert "view-settings" in html
     assert 'data-view="coach"' in html

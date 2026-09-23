@@ -10,3 +10,7 @@ build/
 *.sqlite
 *.sqlite-*
 .DS_Store
+
+# Tauri
+src-tauri/target/
+node_modules/
