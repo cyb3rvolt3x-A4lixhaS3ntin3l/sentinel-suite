@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab, telemetry (Phase G0)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab, demo, full-run, telemetry."""
 
 from __future__ import annotations
 
@@ -587,8 +587,17 @@ def cmd_hunt_findings(args: argparse.Namespace) -> int:
 
 
 
+def _resolve_open_flag(args: argparse.Namespace) -> bool | None:
+    """Map --open / --no-open mutually exclusive flags to True/False/None."""
+    if bool(getattr(args, "open_browser", False)):
+        return True
+    if bool(getattr(args, "no_open", False)):
+        return False
+    return None
+
+
 def cmd_ui(args: argparse.Namespace) -> int:
-    """Local UI shell — default bind 127.0.0.1:8888 (Phase D0)."""
+    """Local UI shell — default bind 127.0.0.1:8888; optional webopen."""
     from sentinel_cli.ui_server import UIBindError, serve_ui
 
     try:
@@ -596,6 +605,7 @@ def cmd_ui(args: argparse.Namespace) -> int:
             bind=getattr(args, "bind", None),
             port=getattr(args, "port", None),
             i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
+            open_browser=_resolve_open_flag(args),
         )
     except UIBindError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -605,6 +615,192 @@ def cmd_ui(args: argparse.Namespace) -> int:
         return 1
     return 0
 
+
+_FREE_PROMISE_ONELINER = (
+    "Free forever locally: no account, no card, no phone-home required "
+    "(see docs/FREE_PROMISE.md). Authorized targets only."
+)
+
+
+def cmd_demo(args: argparse.Namespace) -> int:
+    """Demo helper: doctor → optional lab open → UI with webopen.
+
+    Does **not** scan random hosts. Optional ``--lab`` opens a loopback lab
+    curriculum. For owned live sites use ``sentinel full-run`` with ``--scope``
+    or ``--i-own-this`` (never invent targets).
+    """
+    print("=== sentinel demo ===")
+    print(_FREE_PROMISE_ONELINER)
+    rc = cmd_doctor(args)
+    if rc != 0:
+        print("demo: doctor FAIL — aborting before UI", file=sys.stderr)
+        return rc
+
+    lab_id = getattr(args, "lab", None)
+    if lab_id:
+        lab_ns = argparse.Namespace(
+            lab_id=lab_id,
+            program_id=getattr(args, "program_id", None),
+            base_url=getattr(args, "base_url", None),
+        )
+        lab_rc = cmd_lab_open(lab_ns)
+        if lab_rc != 0:
+            return lab_rc
+
+    print(
+        "demo: UI next. For owned-site Eye/hunt use:\n"
+        "  sentinel full-run --program <id> --target <host> --scope <scope.txt>\n"
+        "  # or --i-own-this (authorized only; never random internet)\n"
+        "Labs stay loopback. Ctrl+C stops the UI."
+    )
+    ui_ns = argparse.Namespace(
+        bind=getattr(args, "bind", None),
+        port=getattr(args, "port", None),
+        i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
+        open_browser=getattr(args, "open_browser", False),
+        no_open=getattr(args, "no_open", False),
+    )
+    # Default demo wants browser open unless --no-open / CI policy says otherwise.
+    if _resolve_open_flag(ui_ns) is None and not getattr(args, "no_open", False):
+        ui_ns.open_browser = True
+    return cmd_ui(ui_ns)
+
+
+def cmd_full_run(args: argparse.Namespace) -> int:
+    """CLI path without GUI: doctor → eye → optional pack → report → optional UI.
+
+    Scope-gated: requires ``--scope`` and/or ``--i-own-this``. Targets must be
+    supplied explicitly — never invents hosts.
+    """
+    targets = list(getattr(args, "targets", []) or [])
+    if not targets:
+        print(
+            "error: full-run requires at least one --target HOST "
+            "(owned / in-scope only; no random hosts)",
+            file=sys.stderr,
+        )
+        return 2
+
+    scope_path = getattr(args, "scope_path", None)
+    i_own = bool(getattr(args, "i_own_this", False))
+    if not scope_path and not i_own:
+        print(
+            "error: full-run requires --scope PATH and/or --i-own-this "
+            "(authorized use only)",
+            file=sys.stderr,
+        )
+        return 2
+
+    program_id = args.program_id
+    print("=== sentinel full-run ===")
+    print(_FREE_PROMISE_ONELINER)
+    print(f"program={program_id!r} targets={targets}")
+
+    rc = cmd_doctor(args)
+    if rc != 0:
+        print("full-run: doctor FAIL — aborting", file=sys.stderr)
+        return rc
+
+    from sentinel_core import create_program, get_sentinel_home, program_dir
+
+    root = program_dir(program_id)
+    if not root.is_dir():
+        create_program(program_id)
+        print(f"created program {program_id!r} under {get_sentinel_home()}")
+
+    eye_ns = argparse.Namespace(
+        program_id=program_id,
+        domains=targets,
+        scope_path=scope_path,
+        i_own_this=i_own,
+        wordlist=None,
+        ports=None,
+        no_resolve=False,
+        no_ports=False,
+        port_host=None,
+        json_full=bool(getattr(args, "json", False)),
+        watch=bool(getattr(args, "watch", True)),
+        no_tools=True,
+        tools=False,
+        no_crtsh=False,
+        no_http=False,
+        no_fingerprint=False,
+        fingerprint_explicit=False,
+        no_identity=False,
+        no_reverse_ip=False,
+        scope_distance=1,
+    )
+    print("--- eye ---")
+    eye_rc = cmd_eye_run(eye_ns)
+    if eye_rc != 0:
+        print(f"full-run: eye exited {eye_rc}", file=sys.stderr)
+        return eye_rc
+
+    pack = getattr(args, "pack", None)
+    if pack:
+        print(f"--- hunt pack {pack} ---")
+        urls = list(getattr(args, "urls", []) or [])
+        if not urls:
+            urls = [f"https://{t}/" if "://" not in t else t for t in targets]
+        pack_ns = argparse.Namespace(
+            pack_id=pack,
+            program_id=program_id,
+            scope_path=scope_path,
+            i_own_this=i_own,
+            urls=urls,
+            role_a_path=None,
+            role_b_path=None,
+            max_workers=None,
+            max_requests=None,
+            max_duration=None,
+            i_understand_lab=False,
+            collaborator=None,
+            listen=False,
+            listen_bind=None,
+            listen_port=None,
+            listen_max_hits=None,
+        )
+        pack_rc = cmd_hunt_pack_run(pack_ns)
+        if pack_rc != 0:
+            print(f"full-run: pack exited {pack_rc}", file=sys.stderr)
+            return pack_rc
+
+    if not getattr(args, "no_report", False):
+        print("--- report ---")
+        out = getattr(args, "report_output", None)
+        report_ns = argparse.Namespace(
+            program_id=program_id,
+            pack_id=None,
+            all_packs=True,
+            output=out,
+        )
+        report_rc = cmd_hunt_report(report_ns)
+        if report_rc != 0:
+            print(f"full-run: report exited {report_rc}", file=sys.stderr)
+            return report_rc
+
+    if getattr(args, "ui", False):
+        print("--- ui ---")
+        open_flag = _resolve_open_flag(args)
+        ui_ns = argparse.Namespace(
+            bind=getattr(args, "bind", None),
+            port=getattr(args, "port", None),
+            i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
+            open_browser=False,
+            no_open=bool(getattr(args, "no_open", False)),
+        )
+        if open_flag is None and not ui_ns.no_open:
+            ui_ns.open_browser = True
+        elif open_flag is False:
+            ui_ns.open_browser = False
+            ui_ns.no_open = True
+        elif open_flag is True:
+            ui_ns.open_browser = True
+            ui_ns.no_open = False
+        return cmd_ui(ui_ns)
+
+    print("full-run: done (pass --ui to open local UI)")
+    return 0
 
 
 def cmd_lab_list(_: argparse.Namespace) -> int:
@@ -1375,7 +1571,166 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Required to bind non-loopback (0.0.0.0 / ::). Never the default.",
     )
+    open_group = ui.add_mutually_exclusive_group()
+    open_group.add_argument(
+        "--open",
+        dest="open_browser",
+        action="store_true",
+        help=(
+            "Open the default browser to the local UI URL after bind "
+            "(loopback preferred; also via SENTINEL_UI_OPEN=1)."
+        ),
+    )
+    open_group.add_argument(
+        "--no-open",
+        dest="no_open",
+        action="store_true",
+        help="Do not open a browser (default in CI/Docker/non-TTY).",
+    )
     ui.set_defaults(func=cmd_ui)
+
+    demo = sub.add_parser(
+        "demo",
+        help=(
+            "Doctor + optional lab open + UI with --open. "
+            "Does not scan random hosts; use full-run for owned targets."
+        ),
+    )
+    demo.add_argument(
+        "--lab",
+        default=None,
+        help="Optional lab id (e.g. juice-shop) — loopback curriculum only",
+    )
+    demo.add_argument(
+        "--program",
+        dest="program_id",
+        default=None,
+        help="Program id when opening a lab",
+    )
+    demo.add_argument(
+        "--base-url",
+        dest="base_url",
+        default=None,
+        help="Override lab base URL (must stay in lab policy)",
+    )
+    demo.add_argument("--bind", default=None, help="UI bind (default 127.0.0.1)")
+    demo.add_argument("--port", type=int, default=None, help="UI port (default 8888)")
+    demo.add_argument(
+        "--i-understand-lab",
+        dest="i_understand_lab",
+        action="store_true",
+        help="Allow non-loopback UI bind (lab exception)",
+    )
+    demo_open = demo.add_mutually_exclusive_group()
+    demo_open.add_argument(
+        "--open",
+        dest="open_browser",
+        action="store_true",
+        help="Force browser open (demo default is open when policy allows)",
+    )
+    demo_open.add_argument(
+        "--no-open",
+        dest="no_open",
+        action="store_true",
+        help="Do not open a browser",
+    )
+    demo.set_defaults(func=cmd_demo)
+
+    fr = sub.add_parser(
+        "full-run",
+        help=(
+            "CLI path: doctor → eye → optional pack → report "
+            "(scope-gated; optional --ui). Requires --target and --scope/--i-own-this."
+        ),
+    )
+    fr.add_argument("--program", dest="program_id", required=True, help="Program id")
+    fr.add_argument(
+        "--target",
+        dest="targets",
+        action="append",
+        default=[],
+        help="Owned/in-scope host (repeatable; required). Never invents targets.",
+    )
+    fr.add_argument(
+        "--scope",
+        dest="scope_path",
+        default=None,
+        help="Path to scope.txt (allow/deny). Pair with --i-own-this as needed.",
+    )
+    fr.add_argument(
+        "--i-own-this",
+        dest="i_own_this",
+        action="store_true",
+        help="Operator affirms authorization (when not using --scope alone)",
+    )
+    fr.add_argument(
+        "--pack",
+        default=None,
+        help="Optional hunt pack id (e.g. open_redirect). Omitted = eye+report only.",
+    )
+    fr.add_argument(
+        "--url",
+        dest="urls",
+        action="append",
+        default=[],
+        help="Optional pack URL (repeatable). Defaults to https://<target>/",
+    )
+    fr.add_argument(
+        "--watch",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Eye watch mode (default: true)",
+    )
+    fr.add_argument(
+        "--no-tools",
+        dest="no_tools",
+        action="store_true",
+        default=True,
+        help="Eye without third-party tool downloads (default)",
+    )
+    fr.add_argument(
+        "--json",
+        action="store_true",
+        help="JSON-ish eye/pack stdout where supported",
+    )
+    fr.add_argument(
+        "--no-report",
+        action="store_true",
+        help="Skip hunt report step",
+    )
+    fr.add_argument(
+        "--report-output",
+        dest="report_output",
+        default=None,
+        help="Optional report output path",
+    )
+    fr.add_argument(
+        "--ui",
+        action="store_true",
+        help="Start local UI after CLI steps (implies webopen unless --no-open)",
+    )
+    fr.add_argument("--bind", default=None, help="UI bind when --ui")
+    fr.add_argument("--port", type=int, default=None, help="UI port when --ui")
+    fr.add_argument(
+        "--i-understand-lab",
+        dest="i_understand_lab",
+        action="store_true",
+        help="Allow non-loopback UI bind when --ui",
+    )
+    fr_open = fr.add_mutually_exclusive_group()
+    fr_open.add_argument(
+        "--open",
+        dest="open_browser",
+        action="store_true",
+        help="Force browser open when --ui",
+    )
+    fr_open.add_argument(
+        "--no-open",
+        dest="no_open",
+        action="store_true",
+        help="Do not open a browser when --ui",
+    )
+    fr.set_defaults(func=cmd_full_run)
 
     return p
 

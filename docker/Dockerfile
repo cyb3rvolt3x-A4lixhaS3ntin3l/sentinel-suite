@@ -33,4 +33,4 @@ RUN pip install --no-cache-dir \
 VOLUME ["/data/sentinel"]
 EXPOSE 8888
 
-CMD ["sentinel", "ui", "--bind", "0.0.0.0", "--port", "8888", "--i-understand-lab"]
+CMD ["sentinel", "ui", "--bind", "0.0.0.0", "--port", "8888", "--i-understand-lab", "--no-open"]

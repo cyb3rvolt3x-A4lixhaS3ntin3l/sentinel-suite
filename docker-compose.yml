@@ -38,6 +38,7 @@ services:
         "--port",
         "8888",
         "--i-understand-lab",
+        "--no-open",
       ]
 
 volumes:

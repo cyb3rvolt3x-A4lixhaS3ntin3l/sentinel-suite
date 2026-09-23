@@ -104,17 +104,34 @@ def assert_ui_bind_allowed(
 
 
 def resolve_ui_static_root() -> Path:
-    """Prefer repo ``ui/``; fall back to package ``static/`` if vendored later."""
+    """Prefer repo ``ui/``; PyInstaller bundle; package ``static/``."""
+    import sys
+
+    candidates: list[Path] = []
+    # PyInstaller one-file extract dir
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        candidates.append(Path(meipass) / "ui")
+    # Next to frozen executable
+    if getattr(sys, "frozen", False):
+        candidates.append(Path(sys.executable).resolve().parent / "ui")
     here = Path(__file__).resolve()
     # packages/sentinel_cli/src/sentinel_cli/ui_server.py → repo root = parents[4]
-    repo_ui = here.parents[4] / "ui"
-    if (repo_ui / "index.html").is_file():
-        return repo_ui
-    pkg_static = here.parent / "static"
-    if (pkg_static / "index.html").is_file():
-        return pkg_static
+    candidates.append(here.parents[4] / "ui")
+    candidates.append(here.parent / "static")
+    # CWD fallback (dev / docker WORKDIR /app)
+    candidates.append(Path.cwd() / "ui")
+
+    for root in candidates:
+        try:
+            if (root / "index.html").is_file():
+                return root
+        except OSError:
+            continue
     raise FileNotFoundError(
-        f"UI static root not found (looked for {repo_ui} and {pkg_static})"
+        "UI static root not found (looked for: "
+        + ", ".join(str(c) for c in candidates)
+        + ")"
     )
 
 
@@ -2017,31 +2034,63 @@ def serve_ui(
     port: int | None = None,
     i_understand_lab: bool = False,
     static_root: Path | None = None,
+    open_browser: bool | None = None,
 ) -> dict[str, Any]:
     """
     Start the local UI HTTP server (blocking).
 
     Default bind 127.0.0.1:8888. Non-loopback requires i_understand_lab.
+
+    ``open_browser``: True/False force; None uses resolve_open_browser policy
+    (TTY default on for loopback; CI/Docker/non-TTY off; see ``sentinel_cli.webopen``).
     """
+    from sentinel_cli.webopen import (
+        loopback_display_url,
+        open_ui_url,
+        resolve_open_browser,
+    )
+
     host = assert_ui_bind_allowed(bind, i_understand_lab=i_understand_lab)
     listen_port = int(port if port is not None else DEFAULT_UI_PORT)
     root = static_root or resolve_ui_static_root()
     handler = make_handler(root)
     httpd = ThreadingHTTPServer((host, listen_port), handler)
-    url = f"http://{host}:{listen_port}/"
+    # Listen URL may use 0.0.0.0; browser/display URL prefers loopback.
+    listen_url = f"http://{host}:{listen_port}/"
+    display_url = loopback_display_url(host, listen_port)
+    should_open = resolve_open_browser(open_flag=open_browser, bind=host)
+    open_meta: dict[str, Any] = {"requested": should_open, "opened": False, "url": display_url}
     summary = {
         "bind": host,
         "port": listen_port,
-        "url": url,
+        "url": display_url,
+        "listen_url": listen_url,
         "static_root": str(root),
         "i_understand_lab": bool(i_understand_lab),
         "default_bind": DEFAULT_UI_BIND,
         "default_port": DEFAULT_UI_PORT,
-        "phase": "E3",
+        "open_browser": should_open,
+        "phase": "productization",
     }
     print(json.dumps({"event": "ui_listening", **summary}, indent=2), flush=True)
-    print(f"Sentinel UI → {url}", flush=True)
+    print(f"Sentinel UI → {display_url}", flush=True)
+    if should_open:
+        # Explicit --open on non-loopback may open 127.0.0.1 (Docker publish path).
+        require_lb = is_loopback_bind(host)
+        open_meta = open_ui_url(display_url, require_loopback=require_lb)
+        open_meta["requested"] = True
+        if open_meta.get("opened"):
+            print(f"Opened default browser → {display_url}", flush=True)
+        else:
+            print(
+                f"webopen skipped/failed ({open_meta.get('error')}); "
+                f"open manually: {display_url}",
+                flush=True,
+            )
+    else:
+        print("webopen: off (use --open or SENTINEL_UI_OPEN=1)", flush=True)
     print("Ctrl+C to stop.", flush=True)
+    summary["webopen"] = open_meta
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

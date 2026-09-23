@@ -14,3 +14,6 @@ build/
 # Tauri
 src-tauri/target/
 node_modules/
+
+# Local release staging (binaries uploaded to GitHub Releases)
+releases/
