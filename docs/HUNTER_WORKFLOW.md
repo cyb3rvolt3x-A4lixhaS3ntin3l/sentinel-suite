@@ -1,7 +1,9 @@
 # Hunter workflow — map → pack → confirm → report
 
-Short Phase C loop for authorized hunting. Packs never auto-confirm;
+Authorized hunter loop. Packs never auto-confirm;
 `confirm-finding` is the only path to `confirmed` / `verified`.
+
+Productization is complete. Historical build-phase notes live in `docs/PHASE_*`.
 
 ## 1) Map (ShadowsEye)
 
@@ -77,6 +79,51 @@ sentinel program export demo
 ```
 
 Local only — no account, no upload. See [`FREE_PROMISE.md`](FREE_PROMISE.md).
+
+
+## Official hunt packs (12)
+
+`sentinel hunt pack list` — Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0`.
+`bola_idor_bfla` also needs Role B. All findings stay `needs_human` / `unverified` until `confirm-finding`.
+
+| Pack | Roles | Extra flags |
+| --- | ---: | --- |
+| `ato_oauth_oidc` | 1 | |
+| `bola_idor_bfla` | 2 | |
+| `business_logic` | 1 | |
+| `race_toctou` | 1 | `--i-understand-lab` (+ caps) |
+| `graphql` | 0 (Role A optional) | |
+| `xss_dom` | 0 | |
+| `csrf_state` | 0 | |
+| `open_redirect` | 0 | |
+| `cache_host` | 0 | |
+| `jwt_session` | 0 | |
+| `http_desync` | 0 | `--i-understand-lab` beyond fixtures |
+| `ssrf_collaborator` | 0 | `--listen` / `--collaborator`; `--i-understand-lab` beyond local mock |
+
+```bash
+sentinel hunt pack run ato_oauth_oidc --program demo --i-own-this \
+  --url 'https://lab.example/oauth/authorize?client_id=1&response_type=code&redirect_uri=https://lab.example/cb'
+sentinel hunt pack run bola_idor_bfla --program demo --i-own-this \
+  --role-a ./roles/a.json --role-b ./roles/b.json
+sentinel hunt pack run business_logic --program demo --i-own-this
+sentinel hunt pack run race_toctou --program demo --i-own-this --i-understand-lab \
+  --max-workers 4 --max-requests 20 --max-duration 5
+sentinel hunt pack run graphql --program demo --i-own-this
+sentinel hunt pack run xss_dom --program demo --i-own-this
+sentinel hunt pack run csrf_state --program demo --i-own-this
+sentinel hunt pack run open_redirect --program demo --i-own-this
+sentinel hunt pack run cache_host --program demo --i-own-this
+sentinel hunt pack run jwt_session --program demo --i-own-this
+sentinel hunt pack run http_desync --program demo --i-own-this --i-understand-lab
+sentinel collaborator serve --program demo --bind 127.0.0.1 --port 8765
+sentinel hunt pack run ssrf_collaborator --program demo --i-own-this --listen
+# --collaborator must be operator-owned; refuses cloud metadata IPs unless lab fixture + --i-understand-lab
+```
+
+`http_desync` / `ssrf_collaborator` beyond pure fixtures also require `--i-understand-lab` (with `--i-own-this`); open-internet needs `--scope` too. `ssrf_collaborator` defaults to a local 127.0.0.1 collaborator mock. Public bind (`0.0.0.0`) needs `--i-understand-lab`. No interactsh / outbound scan.
+
+Also: `sentinel demo` (does not scan random hosts) and `sentinel full-run --target … --scope …` (scope-gated). UI: `sentinel ui --open` → http://127.0.0.1:8888.
 
 ## Honesty fence
 

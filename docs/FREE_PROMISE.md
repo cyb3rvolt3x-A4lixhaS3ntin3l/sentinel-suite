@@ -1,6 +1,6 @@
-# Free promise — forever local vs paid later (Phase G0)
+# Free promise — forever local vs paid later
 
-**Status:** Phase G0 — commercialization readiness / free-promise lock  
+**Status:** Productization complete. Free-promise lock (historical G0) still holds — no G1.  
 **Date:** 2026-09-23 (Asia/Colombo)  
 **Rule:** a solo authorized hunter can map scope, watch diffs, run official packs, coach/labs, confirm findings, and export reports **without** an account, without a credit card, and without calling home.
 
@@ -32,7 +32,7 @@ A solo authorized hunter can do all of the following **offline**, with **no acco
 1. **Install & run locally** — path/git/Compose (`docs/INSTALL.md`); UI at `http://127.0.0.1:8888`
 2. **Map scope** — `sentinel program init` / `import-brief` + scope kernel
 3. **Watch** — `sentinel eye run` (diffs / interestingness)
-4. **Run official packs** — `sentinel hunt pack run` (Phase C freeze: 12 packs)
+4. **Run official packs** — `sentinel hunt pack run` (12 official packs)
 5. **Coach / labs** — labs + Coach (no LLM invent)
 6. **Confirm findings** — `sentinel hunt confirm-finding` (human gate)
 7. **Export reports offline** — `sentinel hunt report` / `sentinel lab report` → markdown on disk
@@ -45,7 +45,7 @@ A solo authorized hunter can do all of the following **offline**, with **no acco
 | Account / signup | Optional local UI bcrypt under `ui_auth.json` is device-local only |
 | Credit card / payment SDK | No Stripe/Razorpay in this tree |
 | Calling home / always-on telemetry | Telemetry **OFF by default**; see below |
-| Cloud workers / SSO / marketplace | Paid-later only (G1–G3); not started in G0 |
+| Cloud workers / SSO / marketplace | Paid-later only; not started |
 | Guard SDK | Separate product — never bundled |
 
 ---
@@ -58,8 +58,8 @@ A solo authorized hunter can do all of the following **offline**, with **no acco
 | **Opt-in** | `SENTINEL_TELEMETRY=1` (also `true` / `yes` / `on`) |
 | **CLI** | `sentinel telemetry status` |
 | **Settings UI** | `/api/settings` → `telemetry` object |
-| **G0 sink** | Local JSONL under `SENTINEL_HOME/telemetry/local.jsonl` only |
-| **Network** | **No phone-home** in G0 even when opted in (no remote endpoint wired) |
+| **Sink today** | Local JSONL under `SENTINEL_HOME/telemetry/local.jsonl` only |
+| **Network** | **No phone-home** even when opted in (no remote endpoint wired) |
 
 ```bash
 # default — no-op collector
@@ -86,10 +86,10 @@ Includes `program.yml`, `scope.txt`, `graph.sqlite`, roles, runs, reports, and a
 
 ---
 
-## Still out of scope (G0)
+## Still out of scope
 
 - Payments, Stripe/Razorpay, accounts, marketplace, cloud workers, SSO
 - Guard SDK / `sentinelagent-guard`
 - New hunt packs / `ENGINE_ALLOWLIST` hashes
-- G1–G3 implement
+- Team/cloud/marketplace (not started)
 - Invented metrics

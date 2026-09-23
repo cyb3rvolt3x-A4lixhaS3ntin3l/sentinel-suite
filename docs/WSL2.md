@@ -1,4 +1,6 @@
-# Windows + WSL2 truth (Phase F)
+# Windows + WSL2
+
+Productization is complete. Historical build-phase notes live in `docs/PHASE_*`.
 
 **Product stance:** On Windows, **WSL2 is the first-class engine backend**. The browser/UI may stay on Windows and talk to the engine on loopback.
 
@@ -14,7 +16,7 @@
                            │
 ┌──────────────────────────▼── WSL2 (Linux) ──────────────────┐
 │  Python venv + sentinel CLI                                 │
-│  sentinel ui --bind 127.0.0.1 --port 8888                   │
+│  sentinel ui --open --bind 127.0.0.1 --port 8888            │
 │  sentinel doctor / eye / hunt / lab                         │
 │  optional: docker compose (labs + suite)                    │
 └─────────────────────────────────────────────────────────────┘
@@ -40,7 +42,7 @@ Manual smoke (operator):
 ```powershell
 # Windows PowerShell
 wsl --status
-wsl -e bash -lc 'cd ~/sentinel-suite && source .venv/bin/activate && sentinel doctor && sentinel ui'
+wsl -e bash -lc 'cd ~/sentinel-suite && source .venv/bin/activate && sentinel doctor && sentinel ui --open'
 # then browse http://127.0.0.1:8888 from Windows
 ```
 

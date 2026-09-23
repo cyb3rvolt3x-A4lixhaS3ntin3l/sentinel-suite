@@ -1,6 +1,8 @@
-# Install — pip / pipx / path / git / Docker / binaries (productization)
+# Install — path/git, Docker Compose, optional unsigned Linux CLI
 
-**Honesty:** PyPI wheels are **not** published yet. Do not invent `pipx install …` success from an index. Use path/git editable installs (or Compose) as the **primary** multi-OS path. Optional GitHub Release binaries are **UNSIGNED** unless a note says otherwise — no Authenticode, no Apple notarization claimed.
+**Honesty:** PyPI wheels are **not** published. Do not invent `pipx install …` success from an index. Use path/git editable installs (or Compose) as the **primary** multi-OS path. Optional GitHub Release binaries are **UNSIGNED** unless a note says otherwise — no Authenticode, no Apple notarization claimed.
+
+See the root [README](../README.md) for the one-liner and platform table.
 
 ## Brand package names
 
@@ -8,10 +10,10 @@
 | --- | --- | --- |
 | `shadowseye` | `shadowseye` | Eye only |
 | `gungnir` | `gungnir` | Hunt packs list / brand entry |
-| `sentinel-suite` | `sentinel` | Meta → full CLI (doctor, eye, hunt, ui, lab) |
+| `sentinel-suite` | `sentinel` | Meta → full CLI (doctor, eye, hunt, ui, lab, demo, full-run) |
 | `sentinel-cli` | `sentinel` | Same CLI without meta package |
 
-## Path / git (recommended today)
+## Path / git (recommended)
 
 ```bash
 git clone https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite.git
@@ -25,6 +27,8 @@ pip install -e packages/sentinel_core \
             -e packages/sentinel_suite
 pytest -q
 sentinel doctor
+sentinel ui --open
+# → http://127.0.0.1:8888
 ```
 
 ### pipx from a local path (no PyPI)
@@ -76,8 +80,6 @@ python scripts/packaging_dry_run.py   # dmg / msi / AppImage / deb scaffold + bl
 **Do not claim** shipped `.dmg` / `.msi` / `.AppImage` / notarization unless a Release asset exists.
 Packaging CI stays under [`ci-pending/tauri.yml`](ci-pending/tauri.yml) while workflow OAuth is HOLD (do not push new workflows).
 
-
-
 ## One-click-ish paths (truthful)
 
 | Path | Platforms | Notes |
@@ -85,10 +87,10 @@ Packaging CI stays under [`ci-pending/tauri.yml`](ci-pending/tauri.yml) while wo
 | **git + venv + pip -e** (recommended) | Linux / macOS / Windows | Guaranteed. Commands above. |
 | **Docker Compose** | Linux / macOS / Windows+Docker | `docker compose up --build` → http://127.0.0.1:8888 |
 | **pipx from local path** | same | Still **not** PyPI index install |
-| **GitHub Release CLI binary** | Linux x86_64 verified when attached | **UNSIGNED** PyInstaller one-file; verify SHA256 |
-| **Windows `.exe`** | Only if Release lists it | Build on Windows via `scripts/build_pyinstaller_windows.ps1`. SmartScreen expected. Prefer WSL2 — see [`WSL2.md`](WSL2.md). |
-| **macOS `.app` / `.dmg`** | **Not shipped** from Linux CI | Needs Mac builder + Gatekeeper honesty; stub: `scripts/build_macos_stub.sh` |
-| **Linux AppImage (Tauri)** | Blocked until `tauri-cli` + webkit deps | Stub: `scripts/build_appimage_linux.sh` |
+| **GitHub Release CLI binary** | Linux x86_64 when attached | **UNSIGNED** PyInstaller one-file; verify SHA256 |
+| **Windows `.exe`** | Only if you build it | `scripts/build_pyinstaller_windows.ps1`. **Not** on the current Release. SmartScreen expected. Prefer WSL2 — see [`WSL2.md`](WSL2.md). |
+| **macOS `.app` / `.dmg`** | **Not shipped** | Needs Mac builder + Gatekeeper honesty; stub: `scripts/build_macos_stub.sh` |
+| **Linux AppImage (Tauri)** | **Blocked** until `tauri-cli` + webkit deps | Stub: `scripts/build_appimage_linux.sh` |
 
 Primary install remains **path/git** or **Compose**. Binaries are secondary convenience.
 
@@ -119,7 +121,13 @@ sentinel full-run --program myprog --target example.com \
 
 ## Optional Release binaries
 
-See GitHub Releases for tagged assets + `SHA256SUMS`. Every binary lacking a vendor signature must be treated as **UNSIGNED**. Packaging ship note: [`PRODUCTIZATION_PACKAGING.md`](PRODUCTIZATION_PACKAGING.md).
+See [v0.1.0-productization](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite/releases/tag/v0.1.0-productization) for tagged assets + `SHA256SUMS`. Every binary lacking a vendor signature must be treated as **UNSIGNED**. Packaging ship note: [`PRODUCTIZATION_PACKAGING.md`](PRODUCTIZATION_PACKAGING.md).
+
+Linux x86_64 CLI SHA256:
+
+```
+004917159410226b4b88488f98142971c2679246e558d1e2111f826f167c9024  sentinel-linux-x86_64
+```
 
 ```bash
 # Linux builder (this repo):
@@ -135,11 +143,11 @@ See GitHub Releases for tagged assets + `SHA256SUMS`. Every binary lacking a ven
 
 `ENGINE_ALLOWLIST` is **empty** — no invented third-party hashes. See [`ENGINES.md`](ENGINES.md).
 
-## Free promise (Phase G0)
+## Free promise
 
 No account, no credit card, and no calling home are required for the local suite.
 See [`FREE_PROMISE.md`](FREE_PROMISE.md). Telemetry is **OFF** unless you set
-`SENTINEL_TELEMETRY=1` (local JSONL stub only — no phone-home in G0).
+`SENTINEL_TELEMETRY=1` (local JSONL stub only — no phone-home).
 
 ```bash
 sentinel program export <program_id>   # offline zip of ~/.sentinel/programs/<id>/

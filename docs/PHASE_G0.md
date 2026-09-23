@@ -1,5 +1,7 @@
 # Phase G0 — Commercialization readiness / free-promise lock
 
+Productization is complete; this file is historical. Current product story: root README + `docs/FREE_PROMISE.md`.
+
 **Status:** COMPLETE (Founder GO via Arisha — 2026-09-23)  
 **Full ship note (box):** `/workspace/deliverables/SENTINEL_SUITE_PHASE_G0_SHIP.md`  
 **Plan:** [`PHASE_G_PLAN.md`](PHASE_G_PLAN.md) · `/workspace/deliverables/SENTINEL_SUITE_PHASE_G_PLAN.md`

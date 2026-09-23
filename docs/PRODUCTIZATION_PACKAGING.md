@@ -18,3 +18,5 @@ In-repo summary lives with deliverables; this file is the repo pointer for READM
 | PyPI / signed / notarized | **NOT claimed** |
 
 See also: [`INSTALL.md`](INSTALL.md), [`PRODUCTIZATION_RESEARCH.md`](PRODUCTIZATION_RESEARCH.md), [`PRODUCTIZATION_DEMOS.md`](PRODUCTIZATION_DEMOS.md).
+
+README product rewrite: [`PRODUCTIZATION_README.md`](PRODUCTIZATION_README.md).
