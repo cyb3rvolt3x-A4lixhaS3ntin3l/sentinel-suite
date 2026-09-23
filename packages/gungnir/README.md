@@ -51,7 +51,8 @@
 
 - InQL full fork / schema dumps / data exfiltration
 - Live third-party GraphQL hammering / alias floods
-- Live SSRF collaborator, coach UI, Guard, `--tools`, workflows, X
+- Live third-party cloud-metadata SSRF campaigns, coach UI, Guard, `--tools`, workflows, X
+- (Owned-collaborator SSRF stubs: see pack `ssrf_collaborator`)
 
 ### Pack `bola_idor_bfla` v0 — can
 
@@ -65,7 +66,7 @@
 ### Pack `bola_idor_bfla` v0 — cannot
 
 - Live multi-tenant abuse / other-customer probing / data destruction
-- Full business-logic assistant, race packs, live collaborator SSRF
+- Full business-logic assistant beyond fixtures; live third-party cloud-metadata SSRF
 - nuclei-all / Guard SDK / workflows
 
 ## Role session fixture format

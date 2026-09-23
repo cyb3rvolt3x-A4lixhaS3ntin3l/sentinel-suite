@@ -136,6 +136,7 @@ def run_pack(
     max_requests: int | None = None,
     max_duration: float | None = None,
     i_understand_lab: bool = False,
+    collaborator: str | None = None,
 ) -> dict[str, Any]:
     """
     Run a hunt pack: require_scope_or_lab, fail-closed on roles, emit candidates.
@@ -182,6 +183,7 @@ def run_pack(
         "max_requests": max_requests,
         "max_duration": max_duration,
         "i_understand_lab": bool(i_understand_lab),
+        "collaborator": collaborator,
     }
 
     result = pack["run"](ctx)
