@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice15 shipped** — owned collaborator **localhost listener** (`sentinel collaborator serve` + pack `--listen`; `COLLABORATOR_HIT` events); slice14 ssrf_collaborator + all 12 packs intact; confirm/report polish intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
-| **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, full coach UI, Tauri, PyPI publish |
+| **Status** | **Phase D0 shipped** — local UI shell `sentinel ui` → **http://127.0.0.1:8888** (doctor / programs / packs / findings + gated pack run); Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, full coach UI, Tauri wrap, bcrypt first-run auth, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
 
@@ -25,6 +25,8 @@ pip install -e packages/sentinel_core \
             -e packages/sentinel_cli
 pytest -q
 sentinel doctor
+sentinel ui
+# → http://127.0.0.1:8888 (127.0.0.1 only by default)
 sentinel program init demo
 sentinel program import-brief demo ./brief.txt --platform auto
 sentinel eye run demo example.com --i-own-this --no-ports
@@ -116,6 +118,12 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 - **No stalking defaults** (username/email OSINT extras stay opt-in later)
 - Secrets stay `SECRET_CANDIDATE` until human/Gungnir proves in-scope use
 - No invented stars, users, or CVEs in docs
+
+## Phase D (local UI)
+
+- Plan: [`docs/PHASE_D_PLAN.md`](docs/PHASE_D_PLAN.md) (full: `/workspace/deliverables/SENTINEL_SUITE_PHASE_D_PLAN.md` on builder box)
+- D0 shell: [`docs/PHASE_D_SLICE0.md`](docs/PHASE_D_SLICE0.md) — `sentinel ui` → `http://127.0.0.1:8888`
+- Non-goals v1: Burp replacement, team mode, cloud sync, Electron
 
 ## License
 

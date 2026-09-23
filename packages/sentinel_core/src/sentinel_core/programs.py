@@ -150,3 +150,46 @@ def update_program_yml_fields(
         out.insert(0, f"id: {program_id}")
     yml_path.write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
     return yml_path
+
+def list_programs(home: Path | None = None) -> list[dict[str, Any]]:
+    """
+    List programs under SENTINEL_HOME/programs/.
+
+    Returns [{id, name, path, platform, has_graph, has_scope}, ...] sorted by id.
+    Missing or unreadable dirs are skipped.
+    """
+    root = programs_root(home)
+    if not root.is_dir():
+        return []
+    rows: list[dict[str, Any]] = []
+    for child in sorted(root.iterdir()):
+        if not child.is_dir():
+            continue
+        pid = child.name
+        if not _SAFE_ID.match(pid):
+            continue
+        yml = child / "program.yml"
+        name = pid
+        platform = "unknown"
+        if yml.is_file():
+            try:
+                for line in yml.read_text(encoding="utf-8").splitlines():
+                    s = line.strip()
+                    if s.startswith("name:"):
+                        name = s.split(":", 1)[1].strip() or pid
+                    elif s.startswith("platform:"):
+                        platform = s.split(":", 1)[1].strip() or "unknown"
+            except OSError:
+                pass
+        rows.append(
+            {
+                "id": pid,
+                "name": name,
+                "path": str(child),
+                "platform": platform,
+                "has_graph": (child / "graph.sqlite").is_file(),
+                "has_scope": (child / "scope.txt").is_file(),
+            }
+        )
+    return rows
+

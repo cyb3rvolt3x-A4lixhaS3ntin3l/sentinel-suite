@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye run, hunt run (Sprint 0)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui (Phase D0)."""
 
 from __future__ import annotations
 
@@ -536,6 +536,26 @@ def cmd_hunt_findings(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_ui(args: argparse.Namespace) -> int:
+    """Local UI shell — default bind 127.0.0.1:8888 (Phase D0)."""
+    from sentinel_cli.ui_server import UIBindError, serve_ui
+
+    try:
+        serve_ui(
+            bind=getattr(args, "bind", None),
+            port=getattr(args, "port", None),
+            i_understand_lab=bool(getattr(args, "i_understand_lab", False)),
+        )
+    except UIBindError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return int(exc.exit_code)
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_collaborator_serve(args: argparse.Namespace) -> int:
     """Owned loopback collaborator callback listener (Phase C slice15)."""
     from gungnir.packs.ssrf_collaborator.caps import CapExceededError
@@ -1022,6 +1042,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Required to bind non-loopback (0.0.0.0 / ::). Never for cloud metadata.",
     )
     collab_serve.set_defaults(func=cmd_collaborator_serve)
+
+    ui = sub.add_parser(
+        "ui",
+        aliases=["serve-ui"],
+        help=(
+            "Local UI shell at http://127.0.0.1:8888 (doctor, programs, packs, "
+            "findings; pack run gated by i_own_this). Default bind loopback only."
+        ),
+    )
+    ui.add_argument(
+        "--bind",
+        default=None,
+        help="Bind address (default: 127.0.0.1). Non-loopback needs --i-understand-lab.",
+    )
+    ui.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Listen port (default: 8888)",
+    )
+    ui.add_argument(
+        "--i-understand-lab",
+        dest="i_understand_lab",
+        action="store_true",
+        help="Required to bind non-loopback (0.0.0.0 / ::). Never the default.",
+    )
+    ui.set_defaults(func=cmd_ui)
 
     return p
 

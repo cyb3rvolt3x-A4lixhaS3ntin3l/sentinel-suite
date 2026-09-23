@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sentinel Suite — Local UI</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <strong>Sentinel Suite</strong>
+      <span class="muted">local UI · Phase D0</span>
+    </div>
+    <nav>
+      <button type="button" data-view="home" class="nav active">Home</button>
+      <button type="button" data-view="programs" class="nav">Programs</button>
+      <button type="button" data-view="packs" class="nav">Packs</button>
+      <button type="button" data-view="findings" class="nav">Findings</button>
+      <button type="button" data-view="run" class="nav">Run pack</button>
+    </nav>
+    <div class="bind-pill" title="Loopback-only by default">127.0.0.1:8888</div>
+  </header>
+
+  <main>
+    <section id="view-home" class="view">
+      <h1>Home</h1>
+      <p class="lede">Authorized hunt loop — doctor, programs, packs. Packs never auto-VERIFIED.</p>
+      <div class="grid three">
+        <article class="card" id="doctor-card">
+          <h2>Doctor</h2>
+          <pre id="doctor-out" class="mono">Loading…</pre>
+        </article>
+        <article class="card">
+          <h2>Programs <span id="program-count" class="badge">0</span></h2>
+          <ul id="home-programs" class="list"></ul>
+        </article>
+        <article class="card">
+          <h2>Packs <span id="pack-count" class="badge">0</span></h2>
+          <ul id="home-packs" class="list"></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-programs" class="view hidden">
+      <h1>Programs</h1>
+      <div id="programs-table" class="card"></div>
+    </section>
+
+    <section id="view-packs" class="view hidden">
+      <h1>Hunt packs</h1>
+      <p class="lede">Phase C frozen — 12 packs. Read-only catalog.</p>
+      <div id="packs-table" class="card"></div>
+    </section>
+
+    <section id="view-findings" class="view hidden">
+      <h1>Findings</h1>
+      <div class="row">
+        <label>Program
+          <select id="findings-program"></select>
+        </label>
+        <label>Status filter
+          <select id="findings-status">
+            <option value="all">all</option>
+            <option value="needs_human">needs_human / pending</option>
+            <option value="confirmed">confirmed</option>
+            <option value="unverified">unverified</option>
+          </select>
+        </label>
+        <button type="button" id="findings-refresh">Refresh</button>
+      </div>
+      <div id="findings-table" class="card"></div>
+    </section>
+
+    <section id="view-run" class="view hidden">
+      <h1>Run pack (gated)</h1>
+      <p class="lede warn">
+        No silent live runs. You must acknowledge ownership (<code>i_own_this</code>).
+        Lab packs may also need <code>i_understand_lab</code>. Findings stay needs_human until confirm-finding.
+      </p>
+      <form id="run-form" class="card form">
+        <label>Program id
+          <input name="program_id" id="run-program" required placeholder="demo" />
+        </label>
+        <label>Pack
+          <select name="pack_id" id="run-pack" required></select>
+        </label>
+        <label>Scope path (optional if i_own_this)
+          <input name="scope_path" placeholder="/path/to/scope.txt" />
+        </label>
+        <label class="check">
+          <input type="checkbox" name="i_own_this" id="run-own" />
+          I own / am authorized for this target (<code>--i-own-this</code>)
+        </label>
+        <label class="check">
+          <input type="checkbox" name="i_understand_lab" id="run-lab" />
+          I understand lab risks (<code>--i-understand-lab</code>) — required for some packs beyond fixtures
+        </label>
+        <div class="row">
+          <button type="submit">Run pack</button>
+          <button type="button" id="run-clear" class="ghost">Clear result</button>
+        </div>
+      </form>
+      <pre id="run-out" class="mono card hidden"></pre>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden</span>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>

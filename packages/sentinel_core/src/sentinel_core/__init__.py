@@ -31,6 +31,7 @@ from sentinel_core.http_guard import (
 from sentinel_core.programs import (
     create_program,
     get_sentinel_home,
+    list_programs,
     open_graph,
     program_dir,
     update_program_yml_fields,
@@ -73,6 +74,7 @@ __all__ = [
     "is_deferred",
     "list_engine_status",
     "list_pinned",
+    "list_programs",
     "load_scope_file",
     "load_scope_text",
     "open_graph",
