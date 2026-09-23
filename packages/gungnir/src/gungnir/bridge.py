@@ -17,6 +17,7 @@ VERIFICATION_STATUSES = frozenset(
         "confirmed",
         "not_reproduced",
         "skipped",
+        "rejected",
     }
 )
 

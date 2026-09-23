@@ -302,7 +302,7 @@ def test_confirm_finding_rejects_unknown(tmp_path, monkeypatch):
     monkeypatch.setenv("SENTINEL_HOME", str(tmp_path / "home"))
     create_program("bl-bad-confirm")
     with pytest.raises(ConfirmError):
-        confirm_finding("bl-bad-confirm", "does-not-exist")
+        confirm_finding("bl-bad-confirm", "does-not-exist", note="probe")
 
 
 def test_ato_and_bola_still_runnable(tmp_path, monkeypatch):

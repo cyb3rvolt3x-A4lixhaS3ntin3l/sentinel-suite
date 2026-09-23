@@ -1,7 +1,8 @@
 """Thin platform-shaped markdown report export for pack findings.
 
-Steps to Reproduce come ONLY from evidence records on the graph — no LLM.
-Skeleton: Title, Summary, Steps to Reproduce, Impact, Remediation placeholders.
+Steps to Reproduce come ONLY from evidence records + stored checklist fields
+on the graph — never LLM-invented. Skeleton: Summary, Scope, Steps, Impact,
+Remediation placeholders.
 """
 
 from __future__ import annotations
@@ -34,30 +35,34 @@ def _steps_from_evidence(evidence_events: list[Any]) -> list[str]:
                     bits.append(f"status={resp.get('status')}")
                 if resp.get("note"):
                     bits.append(str(resp.get("note")))
-                # Include compact observed keys when present (no secrets)
                 observed = resp.get("observed")
                 if isinstance(observed, dict):
                     obs_bits = [
                         f"{k}={observed[k]}"
                         for k in sorted(observed)
-                        if not str(k).endswith("_value") and "token" not in str(k).lower()
+                        if not str(k).endswith("_value")
+                        and "token" not in str(k).lower()
                     ]
                     if obs_bits:
                         bits.append("observed: " + ", ".join(obs_bits[:12]))
                 if resp.get("diff"):
-                    bits.append("diff=" + ",".join(str(x) for x in resp.get("diff")))
+                    bits.append(
+                        "diff=" + ",".join(str(x) for x in resp.get("diff"))
+                    )
                 if resp.get("label"):
                     bits.append(f"label={resp.get('label')}")
                 if resp.get("reasons"):
                     bits.append(
-                        "reasons=" + ",".join(str(x) for x in resp.get("reasons"))
+                        "reasons="
+                        + ",".join(str(x) for x in resp.get("reasons"))
                     )
                 if resp.get("token_types_observed"):
                     bits.append(
                         "token_types="
-                        + ",".join(str(x) for x in resp.get("token_types_observed"))
+                        + ",".join(
+                            str(x) for x in resp.get("token_types_observed")
+                        )
                     )
-                # XSS/DOM sink-proof fields (marker in sink context)
                 if resp.get("sink_kind"):
                     bits.append(f"sink_kind={resp.get('sink_kind')}")
                 if resp.get("marker"):
@@ -68,18 +73,56 @@ def _steps_from_evidence(evidence_events: list[Any]) -> list[str]:
                     snip = str(resp.get("sink_snippet"))
                     bits.append("sink_snippet=" + snip[:160])
                 if bits:
-                    steps.append(f"{len(steps) + 1}. Response/evidence: " + "; ".join(bits))
+                    steps.append(
+                        f"{len(steps) + 1}. Response/evidence: "
+                        + "; ".join(bits)
+                    )
             check = stub.get("check")
             if check and not any(check in s for s in steps):
                 steps.append(f"{len(steps) + 1}. Check id: {check}")
         elif summary:
             steps.append(f"{len(steps) + 1}. Evidence summary: {summary}")
         elif summary is None and not stub:
-            steps.append(f"{len(steps) + 1}. Evidence record {getattr(evi, 'id', idx)} (empty payload)")
+            steps.append(
+                f"{len(steps) + 1}. Evidence record "
+                f"{getattr(evi, 'id', idx)} (empty payload)"
+            )
         if summary and isinstance(stub, dict):
-            # Always append summary as a trailing observational step when stub existed
             steps.append(f"{len(steps) + 1}. Evidence summary: {summary}")
     return steps
+
+
+def _checklist_evidence_lines(payload: dict[str, Any]) -> list[str]:
+    """Checklist / confirm stamps as evidence-log lines (stored data only)."""
+    lines: list[str] = []
+    checklist = payload.get("checklist")
+    if not isinstance(checklist, dict):
+        checklist = {}
+        for key in ("in_scope", "reproducible", "impact", "evidence_attached"):
+            if key in payload:
+                checklist[key] = payload[key]
+    if checklist:
+        bits = []
+        for key in ("in_scope", "reproducible", "impact", "evidence_attached"):
+            if key in checklist:
+                bits.append(f"{key}={checklist[key]}")
+        if bits:
+            lines.append("Checklist: " + "; ".join(bits))
+    if payload.get("human_confirm_note"):
+        lines.append(f"Human confirm note: {payload.get('human_confirm_note')}")
+    if payload.get("human_confirm_by") or payload.get("human_confirm_at"):
+        lines.append(
+            "Human confirm stamp: "
+            f"by={payload.get('human_confirm_by') or '?'}; "
+            f"at={payload.get('human_confirm_at') or '?'}"
+        )
+    if payload.get("pack_auto_confirm_refused"):
+        lines.append(
+            "Pack auto-confirm refused "
+            f"(claimed={payload.get('pack_claimed_verification')}; "
+            "graph status coerced to needs_human)"
+        )
+    return lines
 
 
 def _finding_markdown(
@@ -87,12 +130,18 @@ def _finding_markdown(
     evidence_for_finding: list[Any],
 ) -> str:
     payload = getattr(finding, "payload", None) or {}
+    if not isinstance(payload, dict):
+        payload = {}
     title = str(payload.get("title") or "Untitled finding")
     verification = str(payload.get("verification") or "unverified")
     host = payload.get("host") or ""
     url = payload.get("url") or ""
     check = payload.get("check") or ""
-    impact = payload.get("impact") or (payload.get("checklist") or {}).get("impact") or "unknown"
+    impact = (
+        payload.get("impact")
+        or (payload.get("checklist") or {}).get("impact")
+        or "unknown"
+    )
     confidence = getattr(finding, "confidence", None)
     pack_id = payload.get("pack_id") or ""
 
@@ -104,9 +153,29 @@ def _finding_markdown(
         f"Pack: {pack_id}" if pack_id else None,
         f"Confidence: {confidence}" if confidence is not None else None,
     ]
+    if payload.get("human_confirmed"):
+        summary_bits.append(
+            f"Human-confirmed by={payload.get('human_confirm_by') or '?'}"
+        )
     summary = "; ".join(b for b in summary_bits if b)
 
+    scope_bits: list[str] = []
+    if host:
+        scope_bits.append(f"host={host}")
+    if url:
+        scope_bits.append(f"url={url}")
+    checklist = payload.get("checklist") if isinstance(payload.get("checklist"), dict) else {}
+    if "in_scope" in checklist:
+        scope_bits.append(f"in_scope={checklist.get('in_scope')}")
+    elif "in_scope" in payload:
+        scope_bits.append(f"in_scope={payload.get('in_scope')}")
+    scope_line = (
+        "; ".join(scope_bits) if scope_bits else "_(no scope fields on finding)_"
+    )
+
     steps = _steps_from_evidence(evidence_for_finding)
+    for line in _checklist_evidence_lines(payload):
+        steps.append(f"{len(steps) + 1}. {line}")
     if not steps:
         steps_block = (
             "_(no evidence records linked — steps unavailable; "
@@ -122,6 +191,10 @@ def _finding_markdown(
             "### Summary",
             "",
             summary or "_(no summary fields)_",
+            "",
+            "### Scope",
+            "",
+            scope_line,
             "",
             "### Steps to Reproduce",
             "",
@@ -164,7 +237,6 @@ def collect_pack_findings(
             payload = finding.payload or {}
             fid_pack = payload.get("pack_id")
             if pack_id and fid_pack != pack_id:
-                # Also allow source_module suffix match
                 src = getattr(finding, "source_module", "") or ""
                 if pack_id not in src and fid_pack != pack_id:
                     continue
@@ -183,8 +255,11 @@ def render_report_markdown(
     program_id: str,
     *,
     pack_id: str | None = None,
+    all_packs: bool = False,
 ) -> str:
     """Render a thin multi-finding markdown report (platform-shaped skeleton)."""
+    if all_packs:
+        pack_id = None
     rows = collect_pack_findings(program_id, pack_id=pack_id)
     header = [
         f"# Hunt report — `{program_id}`",
@@ -202,7 +277,7 @@ def render_report_markdown(
             "Run `sentinel hunt pack run ...` first._\n"
         )
         return "\n".join(header)
-    body = []
+    body: list[str] = []
     for i, row in enumerate(rows):
         body.append(row["markdown"])
         if i < len(rows) - 1:
@@ -214,12 +289,15 @@ def export_report(
     program_id: str,
     *,
     pack_id: str | None = None,
+    all_packs: bool = False,
     output: str | Path | None = None,
 ) -> dict[str, Any]:
     """
     Export markdown report. If ``output`` is set, write the file; always return meta.
     """
-    md = render_report_markdown(program_id, pack_id=pack_id)
+    if all_packs:
+        pack_id = None
+    md = render_report_markdown(program_id, pack_id=pack_id, all_packs=all_packs)
     written: str | None = None
     if output is not None:
         path = Path(output)
@@ -230,6 +308,7 @@ def export_report(
     return {
         "program_id": program_id,
         "pack_id": pack_id,
+        "all_packs": bool(all_packs or pack_id is None),
         "findings": len(rows),
         "output": written,
         "markdown": md,

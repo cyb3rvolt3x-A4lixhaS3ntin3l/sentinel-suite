@@ -310,4 +310,10 @@ def test_run_pack_emits_confirmed_nonce_pkce(tmp_path, monkeypatch):
             if e.payload.get("pack_id") == "ato_oauth_oidc"
         ]
         verifs = {f.payload.get("verification") for f in findings}
-        assert "confirmed" in verifs
+        # Pack auto-confirm is refused on graph emit (Phase C slice13) —
+        # fixture-proved candidates stay needs_human until confirm-finding.
+        assert "needs_human" in verifs or "unverified" in verifs
+        assert "confirmed" not in verifs
+        assert any(
+            (f.payload or {}).get("pack_auto_confirm_refused") for f in findings
+        )

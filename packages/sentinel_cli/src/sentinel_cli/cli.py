@@ -458,9 +458,12 @@ def cmd_hunt_report(args: argparse.Namespace) -> int:
     """Thin markdown report from graph findings + evidence (no LLM steps)."""
     from gungnir.packs.report import export_report
 
+    all_packs = bool(getattr(args, "all_packs", False))
+    pack_id = None if all_packs else args.pack_id
     result = export_report(
         args.program_id,
-        pack_id=args.pack_id,
+        pack_id=pack_id,
+        all_packs=all_packs or pack_id is None,
         output=args.output,
     )
     if args.output:
@@ -491,13 +494,38 @@ def cmd_hunt_confirm_finding(args: argparse.Namespace) -> int:
             args.finding_id,
             status=args.status,
             note=args.note,
-            mark_role=args.mark_role,
+            mark_role=getattr(args, "mark_role", None),
+            who=getattr(args, "who", None),
         )
     except ConfirmError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return int(exc.exit_code)
 
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def cmd_hunt_findings(args: argparse.Namespace) -> int:
+    """List FINDING events pending human confirm (or filtered)."""
+    from gungnir.packs.confirm import list_findings
+
+    rows = list_findings(
+        args.program_id,
+        pack_id=getattr(args, "pack_id", None),
+        status=getattr(args, "status", None) or "needs_human",
+    )
+    print(
+        json.dumps(
+            {
+                "program_id": args.program_id,
+                "pack_id": getattr(args, "pack_id", None),
+                "status": getattr(args, "status", None) or "needs_human",
+                "count": len(rows),
+                "findings": rows,
+            },
+            indent=2,
+        )
+    )
     return 0
 
 
@@ -767,6 +795,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Filter findings by pack id (e.g. http_desync | jwt_session | csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
+        "--all-packs",
+        dest="all_packs",
+        action="store_true",
+        help="Include findings from all packs (default when --pack omitted)",
+    )
+    hunt_report.add_argument(
         "-o",
         "--output",
         dest="output",
@@ -774,6 +808,31 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write markdown to FILE (default: stdout)",
     )
     hunt_report.set_defaults(func=cmd_hunt_report)
+
+
+
+    hunt_findings = hunt_sub.add_parser(
+        "findings",
+        help=(
+            "List FINDING events (default: pending confirm / needs_human)"
+        ),
+    )
+    hunt_findings.add_argument("program_id", help="Program id under SENTINEL_HOME")
+    hunt_findings.add_argument(
+        "--pack",
+        dest="pack_id",
+        default=None,
+        help="Filter by pack id",
+    )
+    hunt_findings.add_argument(
+        "--status",
+        default="needs_human",
+        help=(
+            "Filter by verification status (default: needs_human; "
+            "use pending for needs_human|unverified; all for no filter)"
+        ),
+    )
+    hunt_findings.set_defaults(func=cmd_hunt_findings)
 
 
     hunt_confirm = hunt_sub.add_parser(
@@ -793,18 +852,27 @@ def build_parser() -> argparse.ArgumentParser:
         default="confirmed",
         choices=[
             "confirmed",
+            "not_reproduced",
+            "unverified",
+            "skipped",
+            "rejected",
             "verified",
             "needs_human",
-            "unverified",
-            "not_reproduced",
-            "skipped",
         ],
-        help="Verification status to set (default: confirmed)",
+        help=(
+            "Verification status to set (default: confirmed). "
+            "Primary: confirmed|not_reproduced|unverified|skipped|rejected"
+        ),
     )
     hunt_confirm.add_argument(
         "--note",
+        required=True,
+        help="Required human review note stamped on the finding payload",
+    )
+    hunt_confirm.add_argument(
+        "--who",
         default=None,
-        help="Optional human review note stored on the finding payload",
+        help="Who confirmed (default: SENTINEL_HUNTER / USER / getpass)",
     )
     hunt_confirm.add_argument(
         "--mark-role",

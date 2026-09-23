@@ -8,6 +8,7 @@ from typing import Any, Callable, Sequence
 
 from gungnir.bridge import emit_evidence_event, emit_verified_finding, require_scope_or_lab
 from gungnir.packs.manifest import CHECKLIST_FIELDS, finding_gate_checklist
+from gungnir.packs.confirm import refuse_pack_auto_confirm
 from gungnir.packs.registry import get_pack
 from gungnir.packs.roles import (
     RoleSession,
@@ -280,6 +281,7 @@ def run_pack(
             host = item.get("host")
             host_s = str(host) if host else None
             verification = str(item.get("verification") or "unverified")
+            verification, _auto_refuse = refuse_pack_auto_confirm(verification)
             checklist = item.get("checklist") or finding_gate_checklist(
                 in_scope=bool(item.get("in_scope", scope is not None or i_own_this)),
                 reproducible=bool(item.get("reproducible", False)),
@@ -318,6 +320,8 @@ def run_pack(
             }
             payload["checklist"] = checklist
             payload["pack_id"] = pack_id
+            if _auto_refuse:
+                payload.update(_auto_refuse)
             payload["pack_class"] = manifest.pack_class
             for ck, cv in checklist.items():
                 payload[ck] = cv

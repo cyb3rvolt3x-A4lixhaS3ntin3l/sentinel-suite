@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase C slice12 shipped** — `http_desync` pack v0 (CL.TE / TE.CL / header-smuggle **fixture differentials**; lab dual-flag `--i-own-this` + `--i-understand-lab` beyond pure fixtures; not a production CDN/WAF smuggling weapon) + `jwt_session` / `cache_host` / `open_redirect` / `csrf_state` / `xss_dom` / `graphql` / `race_toctou` / `business_logic` / `bola_idor_bfla` / `ato_oauth_oidc` intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase C slice13 shipped** — confirm-finding harden (required note + who/when; refuse pack auto-confirm) + report polish (Summary/Scope/Steps/Impact/Remediation; `--all-packs`) + `hunt findings` list; all 11 packs intact; Phase B Eye intact. Engine hashes **HOLD** (allowlist empty). No new vuln pack. |
 | **Not yet** | Full L1/L3/L4, live SSRF collaborator, full coach UI, Tauri, PyPI publish |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -62,7 +62,7 @@ sentinel hunt confirm-finding demo <finding-id> --status confirmed --note 'lab r
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
-Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0` (`graphql` / `xss_dom` / `csrf_state` / `open_redirect` / `cache_host` / `jwt_session` / `http_desync` — Role A optional); `bola_idor_bfla` also requires Role B at `roles/b.json`. `business_logic` / `graphql` / `xss_dom` / `csrf_state` / `open_redirect` / `cache_host` / `jwt_session` / `http_desync` findings stay `needs_human` until `sentinel hunt confirm-finding`. `http_desync` beyond pure fixtures also requires `--i-understand-lab` (with `--i-own-this`); open-internet needs `--scope` too.
+Hunt packs need Role A at `roles/a.json` (`cookies|headers|bearer`) unless `needs_roles=0` (`graphql` / `xss_dom` / `csrf_state` / `open_redirect` / `cache_host` / `jwt_session` / `http_desync` — Role A optional); `bola_idor_bfla` also requires Role B at `roles/b.json`. All pack findings stay `needs_human` / `unverified` until `sentinel hunt confirm-finding` (note required; packs never auto-confirm). `http_desync` beyond pure fixtures also requires `--i-understand-lab` (with `--i-own-this`); open-internet needs `--scope` too.
 
 Phase B Eye flags: `--json` · `--watch` · `--no-tools` (default) · `--no-identity` · `--no-reverse-ip` · `--scope-distance N` · `--no-fingerprint` · `--no-http`.
 ```bash
@@ -132,6 +132,8 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/PHASE_C_SLICE10.md`](docs/PHASE_C_SLICE10.md) | Slice10 cache_host pack v0 |
 | [`docs/PHASE_C_SLICE11.md`](docs/PHASE_C_SLICE11.md) | Slice11 jwt_session pack v0 |
 | [`docs/PHASE_C_SLICE12.md`](docs/PHASE_C_SLICE12.md) | Slice12 http_desync pack v0 |
+| [`docs/PHASE_C_SLICE13.md`](docs/PHASE_C_SLICE13.md) | Slice13 confirm-finding + report polish |
+| [`docs/HUNTER_WORKFLOW.md`](docs/HUNTER_WORKFLOW.md) | Short hunter loop: map → pack → confirm → report |
 | [`docs/ENGINE_HASH_PROPOSAL.md`](docs/ENGINE_HASH_PROPOSAL.md) | Proposed subfinder/httpx hashes (not allowlisted) |
 
 ## Layout
