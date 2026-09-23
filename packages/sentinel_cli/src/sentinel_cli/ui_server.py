@@ -1341,13 +1341,15 @@ def settings_payload(
     port: int | None = None,
 ) -> dict[str, Any]:
     """
-    Read-only Settings chrome: SENTINEL_HOME, bind, auth, doctor/engines, theme stub, rates.
+    Read-only Settings chrome: SENTINEL_HOME, bind, auth, doctor/engines,
+    theme stub, rates, free-promise + telemetry (Phase G0).
     """
     from sentinel_core import (
         ENGINE_ALLOWLIST,
         engine_catalog_summary,
         get_sentinel_home,
         list_engine_status,
+        telemetry_status,
     )
 
     home = get_sentinel_home()
@@ -1394,7 +1396,7 @@ def settings_payload(
         },
         "rates": rates,
         "rates_present": rates is not None,
-        "phase": "E3",
+        "phase": "G0",
         "license": "MIT",
         "fences": {
             "tauri": True,
@@ -1402,7 +1404,32 @@ def settings_payload(
             "electron": False,
             "guard_sdk": False,
             "llm_coach": False,
+            "payments": False,
+            "cloud_workers": False,
+            "marketplace": False,
+            "sso": False,
         },
+        "free_promise": {
+            "account_required": False,
+            "card_required": False,
+            "calling_home_required": False,
+            "local_only": True,
+            "checklist": [
+                "map scope (program init / import-brief)",
+                "watch diffs (sentinel eye run)",
+                "run official packs (sentinel hunt pack run)",
+                "coach / labs",
+                "confirm findings (confirm-finding)",
+                "export reports offline (hunt report / lab report)",
+                "zip-export program/graph (sentinel program export)",
+            ],
+            "docs": "docs/FREE_PROMISE.md",
+            "note": (
+                "Solo authorized hunter: full local loop without account, "
+                "credit card, or calling home."
+            ),
+        },
+        "telemetry": telemetry_status(home),
     }
 
 

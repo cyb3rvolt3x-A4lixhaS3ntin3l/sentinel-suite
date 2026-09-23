@@ -365,7 +365,7 @@ def test_tauri_dry_run_script():
 
 def test_tauri_status_payload():
     out = tauri_status_payload()
-    assert out["phase"] in ("D4", "E0", "E1", "E2", "E3")
+    assert out["phase"] in ("D4", "E0", "E1", "E2", "E3", "G0")
     assert out["electron"] is False
     assert out["browser_first"] is True
     assert out["tauri_scaffold"]["tauri_conf"] is True

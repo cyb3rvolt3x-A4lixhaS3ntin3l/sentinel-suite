@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase F)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab, telemetry (Phase G0)."""
 
 from __future__ import annotations
 
@@ -161,6 +161,43 @@ def cmd_program_init(args: argparse.Namespace) -> int:
     path = create_program(args.program_id)
     print(f"created program {args.program_id!r} at {path}")
     print(f"SENTINEL_HOME={get_sentinel_home()}")
+    return 0
+
+
+def cmd_program_export(args: argparse.Namespace) -> int:
+    """Zip-export a local program (graph + scope + roles) — free forever path."""
+    from sentinel_core import export_program_zip
+
+    result = export_program_zip(
+        args.program_id,
+        output=getattr(args, "output", None),
+    )
+    if getattr(args, "json", False):
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        print(f"exported program {result['program_id']!r}")
+        print(f"zip: {result['zip_path']}")
+        print(f"files: {result['file_count']} (local_only={result['local_only']})")
+        print("no account / no upload / free forever path")
+    return 0
+
+
+def cmd_telemetry_status(args: argparse.Namespace) -> int:
+    """Show telemetry gate status (OFF by default; opt-in only)."""
+    from sentinel_core import telemetry_status
+
+    status = telemetry_status()
+    if getattr(args, "json", False):
+        print(json.dumps(status, indent=2, default=str))
+    else:
+        state = "ON (opt-in)" if status["enabled"] else "OFF (default)"
+        print(f"telemetry: {state}")
+        print(f"env: {status['env_key']}={status['env_value'] or '(unset)'}")
+        print(
+            f"sink: {status['sink']} · network={status['network']} · "
+            f"phone_home={status['phone_home']}"
+        )
+        print(status["note"])
     return 0
 
 
@@ -729,7 +766,7 @@ def cmd_collaborator_serve(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="sentinel",
-        description="Sentinel Suite CLI (Phase F distribution)",
+        description="Sentinel Suite CLI (Phase G0 free-promise lock)",
     )
     sub = p.add_subparsers(dest="command", required=True)
 
@@ -742,6 +779,24 @@ def build_parser() -> argparse.ArgumentParser:
     init = prog_sub.add_parser("init", help="Create program folder under SENTINEL_HOME")
     init.add_argument("program_id", help="Program id (safe chars)")
     init.set_defaults(func=cmd_program_init)
+
+    exp = prog_sub.add_parser(
+        "export",
+        help="Zip-export local program/graph under SENTINEL_HOME (offline, free path)",
+    )
+    exp.add_argument("program_id", help="Program id to export")
+    exp.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output zip path (default: SENTINEL_HOME/exports/<id>-<ts>.zip)",
+    )
+    exp.add_argument(
+        "--json",
+        action="store_true",
+        help="Print export metadata as JSON",
+    )
+    exp.set_defaults(func=cmd_program_export)
 
     imp = prog_sub.add_parser(
         "import-brief",
@@ -1278,6 +1333,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Include full markdown in JSON stdout",
     )
     lab_report.set_defaults(func=cmd_lab_report)
+
+    tel = sub.add_parser(
+        "telemetry",
+        help="Optional anonymous usage telemetry (OFF by default; opt-in only)",
+    )
+    tel_sub = tel.add_subparsers(dest="telemetry_cmd", required=True)
+    tel_status = tel_sub.add_parser(
+        "status",
+        help="Show whether telemetry is enabled (default OFF; no phone-home)",
+    )
+    tel_status.add_argument(
+        "--json",
+        action="store_true",
+        help="Print status as JSON",
+    )
+    tel_status.set_defaults(func=cmd_telemetry_status)
 
     ui = sub.add_parser(
         "ui",

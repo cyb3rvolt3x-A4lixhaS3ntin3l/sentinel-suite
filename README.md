@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase F COMPLETE** — distribution + Windows truth: brand pip/pipx story (`shadowseye` · `gungnir` · `sentinel-suite`), Docker Compose clean-room UI+engine, Tauri dmg/msi/AppImage+deb scaffolding (dry-run), `sentinel doctor` degrade (Nmap→Naabu-class / API keys / WSL), WSL2 docs; Phase E labs + D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase G0 COMPLETE** — free-promise lock: forever-local matrix + checklist (no account / no card / no calling home); telemetry stub OFF by default; `sentinel program export` zip; Phase F distribution + E labs + D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, **PyPI index publish** (path/git OK); Tauri packaging CI green (OAuth HOLD — see docs/ci-pending/tauri.yml); full `cargo tauri build` without tauri-cli |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -82,6 +82,8 @@ sentinel hunt pack run ssrf_collaborator --program demo --scope ./scope.txt \
   --i-own-this --i-understand-lab --url 'https://staging.example/'
 sentinel hunt report demo --pack ssrf_collaborator -o ./ssrf-collaborator-report.md
 sentinel hunt confirm-finding demo <finding-id> --status confirmed --note 'lab review' --mark-role a
+sentinel program export demo
+sentinel telemetry status   # OFF by default
 ```
 
 `eye` / `hunt` require `--scope FILE` **or** `--i-own-this` (lab override).
@@ -143,6 +145,28 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 - Secrets stay `SECRET_CANDIDATE` until human/Gungnir proves in-scope use
 - No invented stars, users, or CVEs in docs
 
+## Free forever (Phase G0)
+
+**Promise:** a solo authorized hunter can map scope, watch, run official packs, coach/labs, confirm findings, and export reports **without an account, without a credit card, and without calling home.**
+
+| Layer | Free forever (local) | Paid later (additive) |
+| --- | --- | --- |
+| **Install & runtime** | Local single-user (path/git/Compose; Tauri when real) | Cloud watch workers; managed collaborator receive |
+| **Modules** | Official `stable` (+ labeled community channels) | Marketplace + certified packs |
+| **Data** | `~/.sentinel/programs/` + **zip export** | Encrypted sync / team vaults |
+| **Collaboration** | Single operator (loopback) | Team claims / seats |
+| **Identity** | No SSO; bind `127.0.0.1` | SSO for org seats |
+| **Brand CLIs** | `shadowseye` / `gungnir` / `sentinel` offline | Optional cloud login (paid only) |
+| **Trust** | MIT (now) | SLA / support tiers |
+| **Sister products** | — | Guard SaaS stays **separate** — never bundled |
+
+Checklist + telemetry details: [`docs/FREE_PROMISE.md`](docs/FREE_PROMISE.md)
+
+```bash
+sentinel program export demo                 # offline zip → ~/.sentinel/exports/
+sentinel telemetry status                    # OFF by default (SENTINEL_TELEMETRY=0)
+```
+
 ## Phase D (local UI)
 
 - Plan: [`docs/PHASE_D_PLAN.md`](docs/PHASE_D_PLAN.md) (full: `/workspace/deliverables/SENTINEL_SUITE_PHASE_D_PLAN.md` on builder box)
@@ -161,6 +185,13 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 - Ship: [`docs/PHASE_F_SHIP.md`](docs/PHASE_F_SHIP.md)
 - Compose: `docker compose up --build` → http://127.0.0.1:8888
 - Doctor degrades on missing Nmap / API keys / WSL — never hard-fails the product
+
+## Phase G0 (free-promise lock)
+
+- Docs: [`docs/FREE_PROMISE.md`](docs/FREE_PROMISE.md) · ship: [`docs/PHASE_G0.md`](docs/PHASE_G0.md)
+- Plan pointer: [`docs/PHASE_G_PLAN.md`](docs/PHASE_G_PLAN.md)
+- Telemetry opt-in only (`SENTINEL_TELEMETRY`); zip export via `sentinel program export`
+- **Not started:** G1 team claims · G2 cloud workers · G3 marketplace/SSO · payments
 
 ## License
 
@@ -197,6 +228,9 @@ Live public `gungnir` + `ShadowsEye` repos are **thin README mirrors** pointing 
 | [`docs/WSL2.md`](docs/WSL2.md) | Windows + WSL2 engine truth (Phase F) |
 | [`docs/PHASE_F_PLAN.md`](docs/PHASE_F_PLAN.md) | Phase F plan pointer |
 | [`docs/PHASE_F_SHIP.md`](docs/PHASE_F_SHIP.md) | Phase F ship notes |
+| [`docs/FREE_PROMISE.md`](docs/FREE_PROMISE.md) | Free forever vs paid later + checklist (Phase G0) |
+| [`docs/PHASE_G_PLAN.md`](docs/PHASE_G_PLAN.md) | Phase G plan pointer |
+| [`docs/PHASE_G0.md`](docs/PHASE_G0.md) | Phase G0 ship pointer |
 
 ## Layout
 

@@ -28,6 +28,7 @@ from sentinel_core.http_guard import (
     prepare_scoped_request,
     scoped_request,
 )
+from sentinel_core.export_zip import export_program_zip, exports_root
 from sentinel_core.programs import (
     create_program,
     get_sentinel_home,
@@ -35,6 +36,11 @@ from sentinel_core.programs import (
     open_graph,
     program_dir,
     update_program_yml_fields,
+)
+from sentinel_core.telemetry import (
+    emit_event,
+    telemetry_enabled,
+    telemetry_status,
 )
 from sentinel_core.scope import (
     Scope,
@@ -63,6 +69,9 @@ __all__ = [
     "bin_dir",
     "create_program",
     "describe_allowlist",
+    "emit_event",
+    "export_program_zip",
+    "exports_root",
     "detect_brief_platform",
     "detect_engine",
     "download_allowlisted_engine",
@@ -87,5 +96,7 @@ __all__ = [
     "scope_to_raw_text",
     "scoped_request",
     "stamp_run",
+    "telemetry_enabled",
+    "telemetry_status",
     "__version__",
 ]

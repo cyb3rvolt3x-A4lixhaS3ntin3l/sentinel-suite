@@ -1049,6 +1049,14 @@
         null,
         2
       );
+      const fp = $("#settings-free-promise");
+      if (fp) {
+        fp.textContent = JSON.stringify(data.free_promise || {}, null, 2);
+      }
+      const tel = $("#settings-telemetry");
+      if (tel) {
+        tel.textContent = JSON.stringify(data.telemetry || {}, null, 2);
+      }
       if (data.rates_present) {
         $("#settings-rates").textContent = JSON.stringify(data.rates, null, 2);
       } else {

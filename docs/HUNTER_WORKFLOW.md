@@ -69,6 +69,15 @@ Report sections: **Summary**, **Scope**, **Steps to Reproduce** (evidence +
 checklist fields only — never LLM-invented), **Impact**, **Remediation**
 placeholders.
 
+## 5) Zip-export (offline backup — free path)
+
+```bash
+sentinel program export demo
+# → ~/.sentinel/exports/demo-<timestamp>.zip  (or -o ./demo.zip)
+```
+
+Local only — no account, no upload. See [`FREE_PROMISE.md`](FREE_PROMISE.md).
+
 ## Honesty fence
 
 - Packs emit candidates with `needs_human` / `unverified` only.

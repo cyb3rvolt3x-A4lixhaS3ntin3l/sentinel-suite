@@ -327,7 +327,7 @@ def test_assets_changes_modules_ro_without_auth(home):
 def test_spa_mentions_d2_screens():
     root = resolve_ui_static_root()
     html = (root / "index.html").read_text(encoding="utf-8")
-    assert "Phase D2" in html or "Phase D3" in html or "Phase D4" in html or "E2 labs" in html
+    assert "Phase D2" in html or "Phase D3" in html or "Phase D4" in html or "E2 labs" in html or "Phase G0" in html
     assert "view-assets" in html
     assert "view-changes" in html
     assert "view-modules" in html

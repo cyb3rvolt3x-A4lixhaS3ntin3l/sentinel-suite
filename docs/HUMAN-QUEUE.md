@@ -62,3 +62,19 @@ Items that need a human (OAuth scope, Founder decision, or later work). Not bloc
 - Docker Compose clean-room UI+engine
 - Packaging dry-run for dmg/msi/AppImage/deb; **workflow OAuth still HOLD** (`docs/ci-pending/tauri.yml`)
 - Doctor degrade: Nmap → Naabu-class; optional API keys; WSL — see `docs/WSL2.md`
+
+## Phase G0 landed (free-promise lock)
+
+- Free forever matrix + checklist documented (`docs/FREE_PROMISE.md`); Settings UI exposes it
+- Telemetry stub wired **OFF by default** (`SENTINEL_TELEMETRY`); no phone-home
+- `sentinel program export` zip path under `~/.sentinel/exports/`
+- **No** payments / cloud / marketplace / SSO / Guard SDK / G1–G3
+
+### Needs human / counsel (not a local-use blocker)
+
+11. **Legal / marketing disclaimer copy — counsel review pending**
+    - Product ethics fence (“authorized use only”) remains in README / packs / UI.
+    - Do **not** invent final legal counsel text for websites, ToS, or privacy notices.
+    - When counsel provides approved language, replace any placeholder free-promise
+      marketing blurbs; until then keep technical free-promise docs as product truth.
+12. Workflow OAuth / PyPI / ENGINE_ALLOWLIST / Apache — unchanged (see items above).

@@ -10,7 +10,7 @@
   <header class="top">
     <div class="brand">
       <strong>Sentinel Suite</strong>
-      <span class="muted">local UI · Phase E0</span>
+      <span class="muted">local UI · Phase G0 · free forever</span>
     </div>
     <nav>
       <button type="button" data-view="home" class="nav active">Home</button>
@@ -532,7 +532,8 @@
       <h1>Settings</h1>
       <p class="lede">
         Local chrome — SENTINEL_HOME, bind, auth, doctor/engines (allowlist still empty),
-        theme stub, rates if present. Mutating auth clear stays behind bcrypt when set.
+        theme stub, rates if present, <strong>free promise</strong> + telemetry (OFF by default).
+        Mutating auth clear stays behind bcrypt when set. No account / no card / no calling home required.
       </p>
       <div class="grid two">
         <article class="card">
@@ -547,6 +548,16 @@
             <button type="button" id="settings-goto-auth" class="ghost">Open Auth tab</button>
           </div>
           <pre id="settings-action-out" class="mono"></pre>
+        </article>
+        <article class="card">
+          <h2>Free promise (G0)</h2>
+          <p class="muted small">Solo authorized hunter — full local loop offline.</p>
+          <pre id="settings-free-promise" class="mono">Loading…</pre>
+        </article>
+        <article class="card">
+          <h2>Telemetry</h2>
+          <p class="muted small">OFF by default. Opt-in via <code>SENTINEL_TELEMETRY=1</code>. No phone-home unless opted in; G0 sink is local JSONL only.</p>
+          <pre id="settings-telemetry" class="mono">Loading…</pre>
         </article>
         <article class="card">
           <h2>Theme stub</h2>
@@ -604,7 +615,7 @@
   <datalist id="program-list"></datalist>
 
   <footer class="foot">
-    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D4 · E2 labs</span>
+    <span>MIT · free forever local · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D4 · E2 labs · Phase G0 · no payments/cloud</span>
   </footer>
   <script src="/app.js"></script>
 </body>

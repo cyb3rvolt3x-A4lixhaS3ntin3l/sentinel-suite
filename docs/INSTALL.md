@@ -78,3 +78,14 @@ Packaging CI stays under [`ci-pending/tauri.yml`](ci-pending/tauri.yml) while wo
 ## Engine allowlist
 
 `ENGINE_ALLOWLIST` is **empty** — no invented third-party hashes. See [`ENGINES.md`](ENGINES.md).
+
+## Free promise (Phase G0)
+
+No account, no credit card, and no calling home are required for the local suite.
+See [`FREE_PROMISE.md`](FREE_PROMISE.md). Telemetry is **OFF** unless you set
+`SENTINEL_TELEMETRY=1` (local JSONL stub only — no phone-home in G0).
+
+```bash
+sentinel program export <program_id>   # offline zip of ~/.sentinel/programs/<id>/
+sentinel telemetry status
+```
