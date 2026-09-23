@@ -675,7 +675,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack_run.add_argument(
         "pack_id",
         help=(
-            "Pack id (e.g. csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)"
+            "Pack id (e.g. http_desync | jwt_session | csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)"
         ),
     )
     pack_run.add_argument(
@@ -684,8 +684,9 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Program id under SENTINEL_HOME",
     )
-    # Independent (not mutually exclusive): race_toctou open-internet needs BOTH
-    # --scope and --i-own-this plus --i-understand-lab.
+    # Independent (not mutually exclusive): race_toctou / http_desync open-internet
+    # needs --scope and --i-own-this plus --i-understand-lab. http_desync also
+    # requires both ownership+lab flags for any non-pure-fixture path.
     pack_run.add_argument(
         "--scope",
         dest="scope_path",
@@ -729,7 +730,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="max_requests",
         type=int,
         default=None,
-        help="Pack request budget (race_toctou hard max 20; csrf_state/xss_dom/graphql hard max 10; over-limit hard-fails)",
+        help="Pack request budget (race_toctou hard max 20; http_desync/csrf_state/xss_dom/graphql/jwt_session/cache_host hard max 10; over-limit hard-fails)",
     )
     pack_run.add_argument(
         "--max-duration",
@@ -743,9 +744,10 @@ def build_parser() -> argparse.ArgumentParser:
         dest="i_understand_lab",
         action="store_true",
         help=(
-            "race_toctou: acknowledge lab-first race pack; required with "
-            "--scope AND --i-own-this for open-internet targets. Does NOT "
-            "raise hard caps."
+            "Lab acknowledgment for race_toctou / http_desync: required with "
+            "--i-own-this for http_desync beyond pure fixtures; open-internet "
+            "also needs --scope. race_toctou open-internet needs --scope AND "
+            "--i-own-this. Does NOT raise hard caps."
         ),
     )
     pack_run.set_defaults(func=cmd_hunt_pack_run)
@@ -762,7 +764,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack",
         dest="pack_id",
         default=None,
-        help="Filter findings by pack id (e.g. csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
+        help="Filter findings by pack id (e.g. http_desync | jwt_session | csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
         "-o",
