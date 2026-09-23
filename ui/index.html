@@ -427,9 +427,11 @@
     <section id="view-labs" class="view hidden">
       <h1>Open Lab</h1>
       <p class="lede">
-        File → Open Lab — intentional vuln curricula (Juice Shop). Expected findings are
+        File → Open Lab — intentional vuln curricula (<strong>Juice Shop</strong>,
+        <strong>crAPI</strong>, <strong>auth-session</strong>). Expected findings are
         <strong>learning objectives</strong>, not auto-emitted FINDING events. Hints unlock
-        <strong>after</strong> you record an attempt. Loopback defaults only. No LLM invent.
+        <strong>after</strong> you record an attempt. Shared attempt/hint/complete controls
+        for every lab. Loopback defaults only. No LLM invent.
       </p>
       <div class="grid two">
         <article class="card">
@@ -460,8 +462,13 @@
         </article>
       </div>
       <article class="card" style="margin-top:1rem">
-        <h2>Attempt / hints</h2>
+        <h2>Attempt / hints <span class="muted small">(shared UX — all labs)</span></h2>
         <div class="row">
+          <label>Objective
+            <select id="labs-objective-select">
+              <option value="">— select from progress —</option>
+            </select>
+          </label>
           <label>Objective id
             <input id="labs-objective-id" type="text" placeholder="js-admin-section" />
           </label>
@@ -472,7 +479,8 @@
           <button type="button" id="labs-complete" class="ghost">Mark complete (human)</button>
           <button type="button" id="labs-show-hints" class="ghost">Show hints</button>
         </div>
-        <pre id="labs-hints-out" class="mono log-dense">Hints stay locked until attempt.</pre>
+        <p id="labs-progress-schema" class="muted small"></p>
+        <pre id="labs-hints-out" class="mono log-dense">Hints stay locked until attempt. Same controls work for juice-shop, crapi, and auth-session.</pre>
       </article>
     </section>
 
@@ -578,7 +586,7 @@
   <datalist id="program-list"></datalist>
 
   <footer class="foot">
-    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D4</span>
+    <span>MIT · ENGINE_ALLOWLIST empty · Guard SDK untouched · Electron forbidden · Phase D4 · E2 labs</span>
   </footer>
   <script src="/app.js"></script>
 </body>

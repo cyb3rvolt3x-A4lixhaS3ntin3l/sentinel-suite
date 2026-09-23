@@ -111,9 +111,9 @@ def test_allowlist_still_empty_and_twelve_packs():
 
 def test_lab_catalog_juice_shop():
     labs = lab_catalog()
-    assert len(labs) == 1
-    lab = labs[0]
-    assert lab["lab_id"] == "juice-shop"
+    ids = {L["lab_id"] for L in labs}
+    assert "juice-shop" in ids
+    lab = next(L for L in labs if L["lab_id"] == "juice-shop")
     assert lab["default_base_url"] == JUICE_SHOP_DEFAULT_BASE
     assert "127.0.0.1" in lab["default_hosts"]
     objs = lab["objectives"]
@@ -121,8 +121,9 @@ def test_lab_catalog_juice_shop():
     assert all("hints" in o and len(o["hints"]) >= 1 for o in objs)
     assert "docker" in lab["start_docs"].lower()
     payload = labs_payload()
-    assert payload["count"] == 1
-    assert payload["phase"] in ("E0", "E1")
+    assert payload["count"] >= 1
+    assert "juice-shop" in {L["lab_id"] for L in payload["labs"]}
+    assert payload["phase"] in ("E0", "E1", "E2")
 
 
 def test_open_lab_writes_binding_scope_no_findings(home):
@@ -218,8 +219,8 @@ def test_api_labs_open_attempt_hints_coach(ui_server_skip):
     base = ui_server_skip
     code, labs = _http_json(f"{base}/api/labs")
     assert code == 200
-    assert labs["count"] == 1
-    assert labs["labs"][0]["lab_id"] == "juice-shop"
+    assert labs["count"] >= 1
+    assert "juice-shop" in {L["lab_id"] for L in labs["labs"]}
 
     code, opened = _http_json(
         f"{base}/api/labs/open",
@@ -259,7 +260,7 @@ def test_api_labs_open_attempt_hints_coach(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] in ("E0", "E1")
+    assert health["phase"] in ("E0", "E1", "E2")
     assert health["default_bind"] == DEFAULT_UI_BIND
 
 

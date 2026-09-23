@@ -1,7 +1,8 @@
-"""Phase E0 — Open Lab: curriculum labs (Juice Shop), attempts, hints-after-attempt.
+"""Phase E2 — Open Lab: Juice Shop + crAPI + auth-session curricula.
 
 Labs are curricula, not hunt packs. Never invent FINDING events or auto-VERIFIED.
 Hints stay locked until the operator records an attempt for that objective.
+Progress is versioned JSON (schema_version) under the program dir.
 """
 
 from __future__ import annotations
@@ -15,9 +16,12 @@ from sentinel_core import create_program, program_dir, update_program_yml_fields
 
 LAB_FILE = "lab.json"
 PROGRESS_FILE = "lab_progress.json"
+PROGRESS_SCHEMA_VERSION = 1
 
 # Default Juice Shop bind (intentional vuln app — local docker only).
 JUICE_SHOP_DEFAULT_BASE = "http://127.0.0.1:3000"
+CRAPI_DEFAULT_BASE = "http://127.0.0.1:8888"
+AUTH_SESSION_DEFAULT_BASE = "http://127.0.0.1:3000"
 
 JUICE_SHOP_START_DOCS = """# Start OWASP Juice Shop (lab-only)
 
@@ -37,6 +41,86 @@ docker run --rm -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-sho
 - Sentinel Suite never auto-emits FINDING events from this curriculum.
 - Pack runs still need --i-own-this (and --i-understand-lab where Phase C requires it).
 - Confirm findings with a human note before any report claim (never auto-VERIFIED).
+"""
+
+CRAPI_START_DOCS = """# Start OWASP crAPI (lab-only)
+
+Default target: http://127.0.0.1:8888 (loopback web UI / API gateway).
+
+**Conflict note:** Sentinel UI also defaults to `127.0.0.1:8888`. When both run,
+start Sentinel UI on another loopback port, e.g. `sentinel ui --bind 127.0.0.1:8787`.
+
+## Docker Compose (documented upstream)
+
+Clone / follow OWASP crAPI deploy docs, then bind to loopback only. Example pattern:
+
+```bash
+# From an OWASP/crAPI checkout (lab machine only):
+# docker compose -f deploy/docker/docker-compose.yml up -d
+# Ensure published ports are 127.0.0.1:<host>:… — never 0.0.0.0 for lab defaults.
+# Web/API often lands on http://127.0.0.1:8888
+```
+
+If you remap the web port (recommended when Sentinel UI uses 8888):
+
+```bash
+# Example remap — adjust to your compose file service name/ports:
+# -p 127.0.0.1:8889:80   → then open lab with --base-url http://127.0.0.1:8889
+```
+
+```bash
+sentinel lab open crapi --program lab-crapi
+# or with remap:
+sentinel lab open crapi --program lab-crapi --base-url http://127.0.0.1:8889
+```
+
+## Notes
+
+- Lab-only intentional vulnerable API. No real/third-party targets.
+- Curriculum objectives ≠ FINDING events. No auto-VERIFIED.
+- Suggested packs are methodology pointers only (bola_idor_bfla, jwt_session, graphql, …).
+"""
+
+AUTH_SESSION_START_DOCS = """# Auth / session / role curriculum (lab-only)
+
+Default practice target: http://127.0.0.1:3000 (reuse local Juice Shop or another
+intentional loopback app you own). This lab teaches **session + role methodology**
+using Sentinel Auth lab fixtures — it does **not** invent credentials.
+
+## Role fixtures (required for pack methodology)
+
+Under the opened program directory:
+
+```text
+roles/a.json
+roles/b.json
+```
+
+Minimal fixture shape (lab-only; never paste production secrets):
+
+```json
+{
+  "cookies": {},
+  "headers": {},
+  "bearer": null
+}
+```
+
+Fill cookies / headers / bearer from a **local** login you performed yourself.
+Auth tab → Auth lab shows vault metadata + redacted replay stub (no silent live).
+
+## Optional: start Juice Shop as the practice app
+
+```bash
+docker run --rm -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop
+```
+
+## Notes
+
+- Compare anonymous vs role A vs role B on the **same** object path before any BOLA claim.
+- Session/JWT objectives need a real lab token — never invent tokens in notes/reports.
+- Pack runs still need --i-own-this; confirm-finding before report wording.
+- Curriculum only — no auto-emitted FINDING events, no auto-VERIFIED.
 """
 
 
@@ -149,13 +233,215 @@ def _juice_shop_objectives() -> list[dict[str, Any]]:
     ]
 
 
+def _crapi_objectives() -> list[dict[str, Any]]:
+    """crAPI curriculum — API/BOLA/JWT/GraphQL methodology (not discovered bugs)."""
+    return [
+        {
+            "id": "crapi-recon-api",
+            "title": "Map crAPI surfaces (recon)",
+            "category": "recon",
+            "difficulty": "starters",
+            "suggested_packs": [],
+            "summary": (
+                "Curriculum: inventory identity / community / workshop API routes on "
+                "loopback crAPI. Recon only — not a vulnerability claim."
+            ),
+            "hints": _hint_ladder(
+                "Start from the local web UI; note which API hosts/ports your compose "
+                "exposes on 127.0.0.1 only.",
+                "Enumerate documented identity, vehicle, and community endpoints from "
+                "client traffic or OpenAPI-ish hints — stay on loopback.",
+                "Record interesting object IDs you own in lab notes before any "
+                "cross-user access attempts.",
+            ),
+        },
+        {
+            "id": "crapi-bola-vehicle",
+            "title": "BOLA / IDOR — vehicle or order object practice",
+            "category": "access_control",
+            "difficulty": "intermediate",
+            "suggested_packs": ["bola_idor_bfla"],
+            "summary": (
+                "Curriculum: practice object-level access with two lab roles against "
+                "vehicle/order-style resources. Methodology only — never auto-VERIFIED."
+            ),
+            "hints": _hint_ladder(
+                "Create or capture two lab identities (roles/a.json + roles/b.json) "
+                "from local crAPI sign-up/login — never invent tokens.",
+                "Request the same object id as role A and role B; compare status and "
+                "body. One 200 alone is not BOLA.",
+                "Use bola_idor_bfla methodology with --i-own-this on the lab base URL; "
+                "confirm-finding with a human note before report language.",
+            ),
+        },
+        {
+            "id": "crapi-jwt-identity",
+            "title": "JWT / identity token practice",
+            "category": "auth",
+            "difficulty": "intermediate",
+            "suggested_packs": ["jwt_session", "ato_oauth_oidc"],
+            "summary": (
+                "Curriculum: inspect identity tokens issued by local crAPI. "
+                "Weak-alg / claim misuse needs evidence — never invent JWTs."
+            ),
+            "hints": _hint_ladder(
+                "Log in locally and capture a real Authorization bearer into the "
+                "Auth lab vault (display is redacted).",
+                "Decode header/payload offline; note alg, sub/role, and expiry. "
+                "Do not claim impact from decode alone.",
+                "jwt_session pack methodology against loopback — findings stay "
+                "needs_human until confirm-finding.",
+            ),
+        },
+        {
+            "id": "crapi-graphql",
+            "title": "GraphQL enumeration / authz practice",
+            "category": "graphql",
+            "difficulty": "intermediate",
+            "suggested_packs": ["graphql"],
+            "summary": (
+                "Curriculum: practice GraphQL discovery and authz checks on local "
+                "crAPI GraphQL (if exposed). Introspection ≠ vuln by itself."
+            ),
+            "hints": _hint_ladder(
+                "Locate a GraphQL endpoint from local client traffic or docs — "
+                "loopback only.",
+                "FP school: introspection enabled is often informative, not "
+                "automatically a reportable finding without impact.",
+                "graphql pack methodology with optional --role-a; human confirm "
+                "before platform wording.",
+            ),
+        },
+        {
+            "id": "crapi-business-logic",
+            "title": "Business-logic / workflow practice",
+            "category": "business_logic",
+            "difficulty": "intermediate",
+            "suggested_packs": ["business_logic", "race_toctou"],
+            "summary": (
+                "Curriculum: exercise multi-step workshop/community flows for "
+                "state / price / quantity style mistakes — methodology only."
+            ),
+            "hints": _hint_ladder(
+                "Map a multi-step flow (request → approve → pay / contact) on "
+                "loopback before mutating anything.",
+                "Change one parameter at a time; compare authorized vs "
+                "unauthorized role outcomes.",
+                "business_logic / race_toctou packs are methodology helpers — "
+                "still need --i-own-this / lab flags and human confirm.",
+            ),
+        },
+    ]
+
+
+def _auth_session_objectives() -> list[dict[str, Any]]:
+    """Auth/session/role curriculum — fixtures + cross-role methodology."""
+    return [
+        {
+            "id": "as-role-fixtures",
+            "title": "Place Auth lab role fixtures (A/B)",
+            "category": "recon",
+            "difficulty": "starters",
+            "suggested_packs": [],
+            "summary": (
+                "Curriculum: create roles/a.json and roles/b.json under the program "
+                "from a local login you performed. Never invent production secrets."
+            ),
+            "hints": _hint_ladder(
+                "Open the program dir; create roles/ if missing. Auth lab never "
+                "fabricates credentials.",
+                "After local login, copy cookies / bearer into a.json (role A). "
+                "Repeat with a second lab user for b.json.",
+                "Check Auth tab → Auth lab: usable=true, redacted replay stub — "
+                "still no silent live requests.",
+            ),
+        },
+        {
+            "id": "as-anon-vs-role",
+            "title": "Anonymous vs role A on the same object",
+            "category": "access_control",
+            "difficulty": "starters",
+            "suggested_packs": ["bola_idor_bfla"],
+            "summary": (
+                "Curriculum: compare unauthenticated vs role-A responses for one "
+                "object path on the loopback practice app."
+            ),
+            "hints": _hint_ladder(
+                "Pick one object URL on 127.0.0.1. Request once with no session, "
+                "once with role A headers/cookies.",
+                "Note status + body differences. 401/403 vs 200 is a clue, not "
+                "yet a proven broken-access finding.",
+                "Record an evidence note; optional bola_idor_bfla methodology "
+                "still needs_human confirmation.",
+            ),
+        },
+        {
+            "id": "as-role-a-vs-b",
+            "title": "Role A vs role B object access (BOLA practice)",
+            "category": "access_control",
+            "difficulty": "intermediate",
+            "suggested_packs": ["bola_idor_bfla"],
+            "summary": (
+                "Curriculum: same object id with two lab roles. Cross-user read/"
+                "write evidence required before any BOLA claim."
+            ),
+            "hints": _hint_ladder(
+                "Both fixtures must be usable (Auth lab). Swap only the auth "
+                "material — keep path/query identical.",
+                "If role B can read/modify role A's object, capture both "
+                "responses as evidence (lab-only).",
+                "Run bola_idor_bfla with --role-a/--role-b and --i-own-this; "
+                "confirm-finding before report language.",
+            ),
+        },
+        {
+            "id": "as-session-cookie",
+            "title": "Session cookie / flag methodology",
+            "category": "auth",
+            "difficulty": "starters",
+            "suggested_packs": ["jwt_session"],
+            "summary": (
+                "Curriculum: inspect lab session cookies (Secure/HttpOnly/SameSite "
+                "flags) from a local login — informative vs impact needs a story."
+            ),
+            "hints": _hint_ladder(
+                "Capture Set-Cookie from local login (DevTools / Auth vault). "
+                "Do not invent cookie values in reports.",
+                "Check flags and scope. Missing flags alone are often "
+                "informational without a theft/impact chain.",
+                "Document methodology; use jwt_session only if the app issues "
+                "JWTs — still human confirm.",
+            ),
+        },
+        {
+            "id": "as-jwt-vs-session",
+            "title": "JWT vs cookie session practice",
+            "category": "auth",
+            "difficulty": "intermediate",
+            "suggested_packs": ["jwt_session", "ato_oauth_oidc"],
+            "summary": (
+                "Curriculum: identify whether the practice app uses JWT bearer, "
+                "cookie session, or both — then apply the matching methodology."
+            ),
+            "hints": _hint_ladder(
+                "From Auth lab vault: bearer present? cookie session present? "
+                "Both? Record what you actually captured.",
+                "Decode JWTs offline only. Cookie sessions: focus on fixation / "
+                "logout / concurrent session methodology notes.",
+                "Suggested packs are pointers — gated runs need --i-own-this; "
+                "never auto-VERIFIED.",
+            ),
+        },
+    ]
+
+
 def lab_catalog() -> list[dict[str, Any]]:
-    """Static lab catalog (E0: Juice Shop only)."""
+    """Static lab catalog (E2: Juice Shop + crAPI + auth-session)."""
     return [
         {
             "lab_id": "juice-shop",
             "name": "OWASP Juice Shop — Lab 1",
-            "version": "e0",
+            "version": "e2",
             "kind": "intentional_vuln_app",
             "default_program_id": "lab-juice-shop",
             "default_base_url": JUICE_SHOP_DEFAULT_BASE,
@@ -168,7 +454,43 @@ def lab_catalog() -> list[dict[str, Any]]:
                 "Curriculum lab. Expected findings are learning objectives, not "
                 "auto-emitted graph FINDING events. Loopback defaults only."
             ),
-        }
+        },
+        {
+            "lab_id": "crapi",
+            "name": "OWASP crAPI — API / BOLA lab",
+            "version": "e2",
+            "kind": "intentional_vuln_app",
+            "default_program_id": "lab-crapi",
+            "default_base_url": CRAPI_DEFAULT_BASE,
+            "default_hosts": ["127.0.0.1", "localhost"],
+            "default_port": 8888,
+            "objective_count": len(_crapi_objectives()),
+            "objectives": _crapi_objectives(),
+            "start_docs": CRAPI_START_DOCS,
+            "disclaimer": (
+                "Curriculum lab (crAPI). Objectives are learning goals, not "
+                "auto-emitted FINDING events. Loopback defaults only. Remap port "
+                "if Sentinel UI already uses :8888."
+            ),
+        },
+        {
+            "lab_id": "auth-session",
+            "name": "Auth / session / role curriculum",
+            "version": "e2",
+            "kind": "auth_session_curriculum",
+            "default_program_id": "lab-auth-session",
+            "default_base_url": AUTH_SESSION_DEFAULT_BASE,
+            "default_hosts": ["127.0.0.1", "localhost"],
+            "default_port": 3000,
+            "objective_count": len(_auth_session_objectives()),
+            "objectives": _auth_session_objectives(),
+            "start_docs": AUTH_SESSION_START_DOCS,
+            "disclaimer": (
+                "Curriculum lab (auth/session/roles). Uses operator-supplied "
+                "roles/*.json fixtures + loopback practice app. Never invents "
+                "credentials or FINDING events."
+            ),
+        },
     ]
 
 
@@ -192,16 +514,21 @@ def labs_payload() -> dict[str, Any]:
                 "kind": L["kind"],
                 "default_program_id": L["default_program_id"],
                 "default_base_url": L["default_base_url"],
+                "default_port": L.get("default_port"),
                 "objective_count": L["objective_count"],
                 "disclaimer": L["disclaimer"],
+                "start_docs": L["start_docs"],
             }
             for L in labs
         ],
         "count": len(labs),
-        "phase": "E1",
+        "phase": "E2",
+        "progress_schema_version": PROGRESS_SCHEMA_VERSION,
         "note": (
-            "Open Lab creates/binds a program with lab.json + loopback scope. "
-            "Does not start Docker; see start_docs on lab detail / open result."
+            "Open Lab creates/binds a program with lab.json + versioned "
+            "lab_progress.json + loopback scope. Does not start Docker; see "
+            "start_docs on lab detail / open result. Shared attempt/hint UX "
+            "works for all catalog labs."
         ),
     }
 
@@ -225,19 +552,74 @@ def load_lab_binding(program_id: str) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def empty_progress(
+    *,
+    lab_id: str | None = None,
+    program_id: str | None = None,
+) -> dict[str, Any]:
+    """Canonical empty progress document (schema_version current)."""
+    return {
+        "schema_version": PROGRESS_SCHEMA_VERSION,
+        "lab_id": lab_id,
+        "program_id": program_id,
+        "attempts": {},
+        "completed": {},
+        "updated_at": None,
+    }
+
+
+def migrate_progress(
+    data: Any,
+    *,
+    lab_id: str | None = None,
+    program_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Normalize E0/E1 progress (no schema_version) → current schema.
+
+    Never drops attempts/completed. Never invents completes.
+    """
+    if not isinstance(data, dict):
+        return empty_progress(lab_id=lab_id, program_id=program_id)
+    attempts = data.get("attempts") if isinstance(data.get("attempts"), dict) else {}
+    completed = data.get("completed") if isinstance(data.get("completed"), dict) else {}
+    # scrub non-dict entries
+    clean_attempts: dict[str, Any] = {}
+    for k, v in attempts.items():
+        if isinstance(v, dict):
+            clean_attempts[str(k)] = v
+    clean_completed: dict[str, Any] = {}
+    for k, v in completed.items():
+        if isinstance(v, dict):
+            clean_completed[str(k)] = v
+    return {
+        "schema_version": PROGRESS_SCHEMA_VERSION,
+        "lab_id": data.get("lab_id") or lab_id,
+        "program_id": data.get("program_id") or program_id,
+        "attempts": clean_attempts,
+        "completed": clean_completed,
+        "updated_at": data.get("updated_at"),
+    }
+
+
 def load_progress(program_id: str) -> dict[str, Any]:
     path = _progress_path(program_id)
+    binding = load_lab_binding(program_id)
+    lab_id = str(binding["lab_id"]) if binding and binding.get("lab_id") else None
     if not path.is_file():
-        return {"attempts": {}, "completed": {}}
+        return empty_progress(lab_id=lab_id, program_id=program_id)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {"attempts": {}, "completed": {}}
-    if not isinstance(data, dict):
-        return {"attempts": {}, "completed": {}}
-    attempts = data.get("attempts") if isinstance(data.get("attempts"), dict) else {}
-    completed = data.get("completed") if isinstance(data.get("completed"), dict) else {}
-    return {"attempts": attempts, "completed": completed}
+        return empty_progress(lab_id=lab_id, program_id=program_id)
+    migrated = migrate_progress(data, lab_id=lab_id, program_id=program_id)
+    # Persist migration when file lacked schema_version (stable upgrade, no data loss)
+    if not isinstance(data, dict) or data.get("schema_version") != PROGRESS_SCHEMA_VERSION:
+        try:
+            save_progress(program_id, migrated)
+        except FileNotFoundError:
+            pass
+    return migrated
 
 
 def save_progress(program_id: str, progress: dict[str, Any]) -> None:
@@ -246,13 +628,20 @@ def save_progress(program_id: str, progress: dict[str, Any]) -> None:
         raise FileNotFoundError(
             f"program {program_id!r} not found; open a lab first"
         )
+    binding = load_lab_binding(program_id)
+    lab_id = None
+    if binding and binding.get("lab_id"):
+        lab_id = str(binding["lab_id"])
+    elif progress.get("lab_id"):
+        lab_id = str(progress["lab_id"])
+    normalized = migrate_progress(
+        progress, lab_id=lab_id, program_id=program_id
+    )
+    normalized["updated_at"] = _utcnow_iso()
     path = _progress_path(program_id)
-    payload = {
-        "attempts": progress.get("attempts") or {},
-        "completed": progress.get("completed") or {},
-        "updated_at": _utcnow_iso(),
-    }
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(normalized, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def _write_scope_for_lab(root: Path, hosts: list[str], port: int) -> None:
@@ -277,8 +666,8 @@ def open_lab(
     """
     Create/bind a program to a lab curriculum.
 
-    Writes lab.json + lab_progress.json + loopback scope. Does not start Docker
-    and does not emit FINDING events.
+    Writes lab.json + versioned lab_progress.json + loopback scope. Does not
+    start Docker and does not emit FINDING events.
     """
     lab = get_lab_def(lab_id)
     pid = (program_id or lab["default_program_id"]).strip()
@@ -299,7 +688,8 @@ def open_lab(
         "hosts": hosts,
         "port": port,
         "opened_at": _utcnow_iso(),
-        "phase": "E1",
+        "phase": "E2",
+        "progress_schema_version": PROGRESS_SCHEMA_VERSION,
         "invent_findings": False,
         "auto_verified": False,
     }
@@ -307,9 +697,28 @@ def open_lab(
         json.dumps(binding, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     if not _progress_path(pid).is_file():
-        save_progress(pid, {"attempts": {}, "completed": {}})
+        save_progress(
+            pid,
+            empty_progress(lab_id=lab["lab_id"], program_id=pid),
+        )
+    else:
+        # Re-open: migrate existing progress in place; keep attempts/completed
+        load_progress(pid)
 
     (root / "LAB_START.md").write_text(lab["start_docs"], encoding="utf-8")
+
+    # auth-session: ensure roles/ dir exists with README pointer (no fake creds)
+    if lab["lab_id"] == "auth-session":
+        roles_dir = root / "roles"
+        roles_dir.mkdir(exist_ok=True)
+        readme = roles_dir / "README.md"
+        if not readme.is_file():
+            readme.write_text(
+                "# Lab role fixtures\n\n"
+                "Place `a.json` and `b.json` from a **local** login.\n"
+                "Never commit production secrets. Auth lab never fabricates credentials.\n",
+                encoding="utf-8",
+            )
 
     update_program_yml_fields(
         pid,
@@ -349,15 +758,22 @@ def record_attempt(
     attempts = dict(progress.get("attempts") or {})
     prev = attempts.get(objective_id) if isinstance(attempts.get(objective_id), dict) else {}
     count = int(prev.get("count") or 0) + 1
+    note_text = (note or "").strip() or None
+    notes = list(prev.get("notes") or []) if isinstance(prev.get("notes"), list) else []
+    if note_text:
+        notes.append({"at": _utcnow_iso(), "body": note_text})
     entry = {
         "objective_id": objective_id,
         "attempted_at": _utcnow_iso(),
         "count": count,
-        "note": (note or "").strip() or None,
+        "note": note_text or prev.get("note"),
+        "notes": notes[-20:],  # cap history
         "hints_unlocked": True,
     }
     attempts[objective_id] = entry
     progress["attempts"] = attempts
+    progress["lab_id"] = binding["lab_id"]
+    progress["program_id"] = program_id
     save_progress(program_id, progress)
     return lab_status_payload(program_id)
 
@@ -393,9 +809,12 @@ def mark_objective_complete(
             "attempted_at": _utcnow_iso(),
             "count": 1,
             "note": "auto-recorded on human complete",
+            "notes": [],
             "hints_unlocked": True,
         }
         progress["attempts"] = attempts
+    progress["lab_id"] = binding["lab_id"]
+    progress["program_id"] = program_id
     save_progress(program_id, progress)
     return lab_status_payload(program_id)
 
@@ -429,6 +848,7 @@ def hints_for_objective(program_id: str, objective_id: str) -> dict[str, Any]:
             )
         ),
         "attempt": attempt if isinstance(attempt, dict) else None,
+        "progress_schema_version": progress.get("schema_version"),
     }
 
 
@@ -478,10 +898,11 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
     attempted_n = sum(1 for o in objectives_out if o["attempted"])
     unlocked_n = sum(1 for o in objectives_out if o["hints_unlocked"])
     completed_n = sum(1 for o in objectives_out if o["completed"])
+    lab_id = binding["lab_id"]
 
     return {
         "program_id": program_id,
-        "lab_id": binding["lab_id"],
+        "lab_id": lab_id,
         "name": binding.get("name") or lab["name"],
         "base_url": binding.get("base_url") or lab["default_base_url"],
         "hosts": binding.get("hosts") or lab.get("default_hosts"),
@@ -496,15 +917,25 @@ def lab_status_payload(program_id: str) -> dict[str, Any]:
             "hints_unlocked": unlocked_n,
             "completed": completed_n,
         },
+        "progress": {
+            "schema_version": progress.get("schema_version"),
+            "updated_at": progress.get("updated_at"),
+            "lab_id": progress.get("lab_id") or lab_id,
+            "program_id": progress.get("program_id") or program_id,
+        },
+        "progress_schema_version": PROGRESS_SCHEMA_VERSION,
         "disclaimer": lab["disclaimer"],
         "invent_findings": False,
         "auto_verified": False,
         "llm": False,
-        "phase": "E1",
+        "phase": "E2",
         "how_to_open": {
-            "cli": f"sentinel lab open {binding['lab_id']} --program {program_id}",
-            "ui": "Labs tab → select juice-shop → Open Lab",
-            "api": "POST /api/labs/open {\"lab_id\":\"juice-shop\",\"program_id\":…}",
+            "cli": f"sentinel lab open {lab_id} --program {program_id}",
+            "ui": f"Labs tab → select {lab_id} → Open Lab",
+            "api": (
+                f'POST /api/labs/open {{"lab_id":"{lab_id}",'
+                f'"program_id":"{program_id}"}}'
+            ),
         },
     }
 
@@ -556,8 +987,9 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
     """
     Coach hooks for an open lab — methodology only; never claims vulns exist.
 
-    Phase E1 kinds: lab_stage (map|attempt|hint|complete), lab_fp_school,
+    Phase E1/E2 kinds: lab_stage (map|attempt|hint|complete), lab_fp_school,
     lab_time_budget — driven from lab_progress.json + binding opened_at.
+    Works for any lab-bound program (juice-shop / crapi / auth-session).
     """
     binding = load_lab_binding(program_id)
     if not binding:
@@ -571,12 +1003,15 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
     counts = dict(status.get("counts") or {})
     objectives = list(status.get("objectives") or [])
     stage = _lab_stage_name(counts, objectives)
+    lab_name = status.get("name") or status.get("lab_id") or "lab"
+    lab_id = status.get("lab_id")
 
     stage_advice = {
         "map": (
-            "Stage=map — no attempts recorded yet. Start Juice Shop on loopback "
-            "(LAB_START.md), recon the SPA, then record an attempt on an objective "
-            "to unlock hints. Do not invent FINDING events from curriculum titles."
+            f"Stage=map — no attempts recorded yet. Start the lab app on loopback "
+            f"(LAB_START.md for {lab_id}), recon, then record an attempt on an "
+            f"objective to unlock hints. Do not invent FINDING events from "
+            f"curriculum titles."
         ),
         "attempt": (
             "Stage=attempt — you have recorded tries; some objective hints may still "
@@ -598,9 +1033,9 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
         {
             "id": f"lab-stage-{stage}",
             "kind": "lab_stage",
-            "title": f"Lab stage — {stage} · {status.get('name')}",
+            "title": f"Lab stage — {stage} · {lab_name}",
             "body": (
-                f"Program {program_id!r} bound to lab {status.get('lab_id')!r} "
+                f"Program {program_id!r} bound to lab {lab_id!r} "
                 f"@ {status.get('base_url')}. "
                 f"Progress: attempted={counts.get('attempted', 0)}/"
                 f"{counts.get('objectives', 0)}, "
@@ -611,7 +1046,7 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
             "evidence_counts": {
                 **counts,
                 "lab_stage": stage,
-                "lab_id": status.get("lab_id"),
+                "lab_id": lab_id,
             },
             "lab_stage": stage,
         }
@@ -645,7 +1080,7 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
                 "kind": "lab_hint_gate",
                 "title": "All lab hints unlocked",
                 "body": (
-                    "You unlocked hints for every Lab 1 objective via attempts. "
+                    f"You unlocked hints for every {lab_name} objective via attempts. "
                     "Next: gated pack runs on the lab base URL, human confirm-finding, "
                     "then Reports export (E3 exit path). Still no auto-VERIFIED."
                 ),
@@ -680,12 +1115,13 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
     ]
     if stuck:
         lines = [
-            "Lab FP school (methodology only — not claims these bugs exist here):",
-            "· Reflection in Juice Shop search ≠ XSS until you name a sink + context.",
-            "· Hitting /administration as role A ≠ broken access control until you "
+            f"Lab FP school for {lab_name} (methodology only — not claims these bugs exist here):",
+            "· Reflection / echo in UI ≠ XSS until you name a sink + context.",
+            "· Hitting an admin or object route as role A ≠ broken access control until you "
             "compare status/body across roles on the same object.",
             "· JWT decode ≠ weak-alg impact until jwt_session evidence is confirmed.",
             "· Open redirect candidate ≠ reportable until navigation follows your URL.",
+            "· GraphQL introspection ≠ vuln by itself without an authz/impact story.",
             "· Curriculum titles are learning goals — never auto-emitted FINDING events.",
         ]
         samples: list[str] = []
@@ -694,7 +1130,7 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
             samples.append(f"{o.get('id')}[{cat}]")
             if cat == "xss":
                 lines.append(
-                    f"· On {o.get('id')}: treat search reflection as a sink hunt, "
+                    f"· On {o.get('id')}: treat reflection as a sink hunt, "
                     f"not a verified XSS (see suggested xss_dom methodology)."
                 )
             elif cat in ("access_control", "access"):
@@ -704,8 +1140,8 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
                 )
             elif cat == "auth":
                 lines.append(
-                    f"· On {o.get('id')}: capture a real lab token; do not invent "
-                    f"JWTs in notes or reports."
+                    f"· On {o.get('id')}: capture a real lab token/cookie; do not invent "
+                    f"JWTs or sessions in notes or reports."
                 )
             elif cat == "redirect":
                 lines.append(
@@ -717,6 +1153,16 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
                     f"· On {o.get('id')}: recon objectives have no FINDING claim — "
                     f"mark complete only when you personally found the surface."
                 )
+            elif cat == "graphql":
+                lines.append(
+                    f"· On {o.get('id')}: introspection/listing is often informative; "
+                    f"pair with authz checks before report wording."
+                )
+            elif cat == "business_logic":
+                lines.append(
+                    f"· On {o.get('id')}: one odd price/qty response ≠ proven logic bug — "
+                    f"need a reproducible multi-step story."
+                )
         lines.append(
             f"Stuck (attempted, not human-complete): {', '.join(samples)}. "
             f"Coach never invents extras."
@@ -725,13 +1171,14 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
             {
                 "id": "lab-fp-school",
                 "kind": "lab_fp_school",
-                "title": "Lab FP school — Juice Shop context",
+                "title": f"Lab FP school — {lab_name}",
                 "body": "\n".join(lines),
                 "evidence_counts": {
                     "stuck_objectives": len(stuck),
                     "attempted": counts.get("attempted", 0),
                     "completed": counts.get("completed", 0),
                     "sample_ids": [o.get("id") for o in stuck[:5]],
+                    "lab_id": lab_id,
                 },
             }
         )
@@ -796,12 +1243,12 @@ def generate_lab_coach_hints(program_id: str) -> list[dict[str, Any]]:
                     "completed": completed_n,
                     "attempted": counts.get("attempted", 0),
                     "opened_at": opened_at,
+                    "lab_id": lab_id,
                 },
             }
         )
 
     return hints
-
 
 
 def open_lab_action(body: dict[str, Any]) -> dict[str, Any]:
@@ -831,11 +1278,17 @@ def attempt_lab_action(program_id: str, body: dict[str, Any]) -> dict[str, Any]:
 
 
 __all__ = [
+    "AUTH_SESSION_DEFAULT_BASE",
+    "AUTH_SESSION_START_DOCS",
+    "CRAPI_DEFAULT_BASE",
+    "CRAPI_START_DOCS",
     "JUICE_SHOP_DEFAULT_BASE",
     "JUICE_SHOP_START_DOCS",
     "LAB_TIME_BUDGET_ATTEMPT_TOTAL",
     "LAB_TIME_BUDGET_HOURS",
+    "PROGRESS_SCHEMA_VERSION",
     "attempt_lab_action",
+    "empty_progress",
     "generate_lab_coach_hints",
     "get_lab_def",
     "hints_for_objective",
@@ -843,8 +1296,11 @@ __all__ = [
     "lab_status_payload",
     "labs_payload",
     "load_lab_binding",
+    "load_progress",
     "mark_objective_complete",
+    "migrate_progress",
     "open_lab",
     "open_lab_action",
     "record_attempt",
+    "save_progress",
 ]

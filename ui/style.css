@@ -189,3 +189,9 @@ body.theme-light .cmd-results li.active { background: #e8eef8; }
 }
 body.theme-light .coach-lab-section { background: #eaf1ff; }
 body.theme-light .coach-card.lab-kind .kind { color: #1a4fb8; }
+
+/* Phase E2 — shared lab objective actions */
+.labs-obj-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.labs-obj-actions button { font-size: 0.8rem; }
+.lab-obj-done { border-left: 3px solid var(--ok, #3d9a6a); }
+.lab-obj-tried { border-left: 3px solid var(--warn, #c9a227); }

@@ -1415,14 +1415,33 @@
 
 
   // --- Phase E0: Open Lab ---
+  let _labsCatalogCache = [];
+
+  function showCatalogStartDocs() {
+    const sel = $("#labs-catalog");
+    const docs = $("#labs-start-docs");
+    if (!sel || !docs || !sel.options.length) return;
+    const labId = sel.value;
+    const L = (_labsCatalogCache || []).find((x) => x.lab_id === labId);
+    if (L && L.start_docs) {
+      docs.textContent = L.start_docs;
+      return;
+    }
+    const o = sel.options[sel.selectedIndex];
+    docs.textContent =
+      "Select Open Lab to write LAB_START.md into the program.\n" +
+      "Default base: " +
+      (o && o.dataset.base ? o.dataset.base : "http://127.0.0.1:3000");
+  }
+
   async function loadLabsCatalog() {
     const sel = $("#labs-catalog");
     const meta = $("#labs-catalog-meta");
-    const docs = $("#labs-start-docs");
     try {
       const data = await api("/api/labs");
+      _labsCatalogCache = data.labs || [];
       sel.innerHTML = "";
-      for (const L of data.labs || []) {
+      for (const L of _labsCatalogCache) {
         const opt = document.createElement("option");
         opt.value = L.lab_id;
         opt.textContent = L.name + " (" + L.lab_id + ")";
@@ -1431,7 +1450,13 @@
         sel.appendChild(opt);
       }
       meta.textContent = JSON.stringify(
-        { count: data.count, phase: data.phase, note: data.note },
+        {
+          count: data.count,
+          phase: data.phase,
+          progress_schema_version: data.progress_schema_version,
+          labs: (_labsCatalogCache || []).map((L) => L.lab_id),
+          note: data.note,
+        },
         null,
         2
       );
@@ -1440,13 +1465,7 @@
         if (!$("#labs-program-id").value) {
           $("#labs-program-id").value = o.dataset.defaultProgram || "lab-juice-shop";
         }
-        // fetch full start docs via open status only after open; show catalog disclaimer
-        docs.textContent =
-          "Select Open Lab to write LAB_START.md into the program.\n" +
-          "Default base: " +
-          (o.dataset.base || "http://127.0.0.1:3000") +
-          "\n" +
-          "docker run --rm -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop";
+        showCatalogStartDocs();
       }
     } catch (e) {
       meta.textContent = String(e.message || e);
@@ -1465,13 +1484,45 @@
     if ($("#labs-program").value) await refreshLabStatus();
   }
 
+  function fillLabObjectiveSelect(objectives) {
+    const sel = $("#labs-objective-select");
+    if (!sel) return;
+    const prev = sel.value || ($("#labs-objective-id") && $("#labs-objective-id").value) || "";
+    sel.innerHTML = '<option value="">— select objective —</option>';
+    for (const o of objectives || []) {
+      const opt = document.createElement("option");
+      opt.value = o.id;
+      const flags = [];
+      if (o.attempted) flags.push("tried");
+      if (o.hints_unlocked) flags.push("hints");
+      if (o.completed) flags.push("done");
+      opt.textContent =
+        o.id + " — " + (o.title || "") + (flags.length ? " [" + flags.join(",") + "]" : "");
+      sel.appendChild(opt);
+    }
+    if (prev) {
+      sel.value = prev;
+      if ($("#labs-objective-id")) $("#labs-objective-id").value = prev;
+    }
+  }
+
+  function pickLabObjective(oid) {
+    if (!oid) return;
+    if ($("#labs-objective-id")) $("#labs-objective-id").value = oid;
+    const sel = $("#labs-objective-select");
+    if (sel) sel.value = oid;
+  }
+
   async function refreshLabStatus() {
     const pid = $("#labs-program").value;
     const box = $("#labs-objectives");
     const meta = $("#labs-status-meta");
+    const schemaEl = $("#labs-progress-schema");
     if (!pid) {
       box.innerHTML = '<p class="empty-state">Open a lab or select a lab-bound program.</p>';
       meta.textContent = "";
+      if (schemaEl) schemaEl.textContent = "";
+      fillLabObjectiveSelect([]);
       return;
     }
     box.innerHTML = '<p class="muted">Loading…</p>';
@@ -1492,11 +1543,25 @@
         (c.completed || 0) +
         " · invent_findings=" +
         String(!!data.invent_findings);
+      if (schemaEl) {
+        const p = data.progress || {};
+        schemaEl.textContent =
+          "progress schema_version=" +
+          (data.progress_schema_version || p.schema_version || "?") +
+          (p.updated_at ? " · updated_at=" + p.updated_at : "") +
+          " · shared attempt/hint/complete UX";
+      }
       if (data.start_docs) $("#labs-start-docs").textContent = data.start_docs;
+      fillLabObjectiveSelect(data.objectives || []);
       let html = "";
       for (const o of data.objectives || []) {
+        const cardClass =
+          "coach-card" +
+          (o.completed ? " lab-obj-done" : o.attempted ? " lab-obj-tried" : "");
         html +=
-          '<article class="coach-card"><span class="kind">' +
+          '<article class="' +
+          cardClass +
+          '"><span class="kind">' +
           esc(o.category) +
           "</span><h3>" +
           esc(o.id) +
@@ -1525,14 +1590,53 @@
             '<p class="muted small">Hints locked — record an attempt to unlock.</p>';
         }
         html +=
+          '<div class="labs-obj-actions">' +
           '<button type="button" class="ghost labs-pick" data-oid="' +
           esc(o.id) +
-          '">Use objective</button></article>';
+          '">Use</button>' +
+          '<button type="button" class="labs-obj-attempt" data-oid="' +
+          esc(o.id) +
+          '">Attempt</button>' +
+          '<button type="button" class="ghost labs-obj-complete" data-oid="' +
+          esc(o.id) +
+          '">Complete</button>' +
+          '<button type="button" class="ghost labs-obj-hints" data-oid="' +
+          esc(o.id) +
+          '">Hints</button>' +
+          "</div></article>";
       }
       box.innerHTML = html || '<p class="empty-state">No objectives.</p>';
       box.querySelectorAll(".labs-pick").forEach((btn) => {
+        btn.addEventListener("click", () => pickLabObjective(btn.dataset.oid));
+      });
+      box.querySelectorAll(".labs-obj-attempt").forEach((btn) => {
         btn.addEventListener("click", () => {
-          $("#labs-objective-id").value = btn.dataset.oid;
+          pickLabObjective(btn.dataset.oid);
+          postLabAttempt(false);
+        });
+      });
+      box.querySelectorAll(".labs-obj-complete").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          pickLabObjective(btn.dataset.oid);
+          postLabAttempt(true);
+        });
+      });
+      box.querySelectorAll(".labs-obj-hints").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          pickLabObjective(btn.dataset.oid);
+          const oid = btn.dataset.oid;
+          const program = $("#labs-program").value;
+          try {
+            const hints = await api(
+              "/api/programs/" +
+                encodeURIComponent(program) +
+                "/lab/hints/" +
+                encodeURIComponent(oid)
+            );
+            $("#labs-hints-out").textContent = JSON.stringify(hints, null, 2);
+          } catch (e) {
+            $("#labs-hints-out").textContent = String(e.message || e);
+          }
         });
       });
     } catch (e) {
@@ -1549,7 +1653,14 @@
   $("#labs-catalog").addEventListener("change", () => {
     const o = $("#labs-catalog").options[$("#labs-catalog").selectedIndex];
     if (o) $("#labs-program-id").value = o.dataset.defaultProgram || "";
+    showCatalogStartDocs();
   });
+  const objSel = $("#labs-objective-select");
+  if (objSel) {
+    objSel.addEventListener("change", () => {
+      if (objSel.value) pickLabObjective(objSel.value);
+    });
+  }
 
   $("#labs-open").addEventListener("click", async () => {
     const lab_id = $("#labs-catalog").value;

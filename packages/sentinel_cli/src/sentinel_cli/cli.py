@@ -1,4 +1,4 @@
-"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E1)."""
+"""sentinel CLI — doctor, program, eye, hunt, collaborator, ui, lab (Phase E2)."""
 
 from __future__ import annotations
 

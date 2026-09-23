@@ -186,7 +186,7 @@ def test_coach_payload_lab_kinds_and_progress(home):
     payload = coach_payload("e1coach")
     assert payload["llm"] is False
     assert payload["lab_bound"] is True
-    assert payload.get("phase") == "E1"
+    assert payload.get("phase") in ("E1", "E2")
     assert "lab_stage" in (payload.get("lab_kinds") or [])
     assert "lab_fp_school" in (payload.get("lab_kinds") or [])
     assert (payload.get("lab_progress") or {}).get("lab_id") == "juice-shop"
@@ -241,7 +241,7 @@ def test_api_coach_lab_kinds_and_health(ui_server_skip):
 
     code, health = _http_json(f"{base}/api/health")
     assert code == 200
-    assert health["phase"] == "E1"
+    assert health["phase"] in ("E1", "E2")
     assert health["default_bind"] == DEFAULT_UI_BIND
 
 

@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Brand** | Sentinel Suite (umbrella); product names ShadowsEye + Gungnir |
-| **Status** | **Phase E1 shipped** — Coach lab-aware (`lab_stage` / `lab_fp_school` / `lab_time_budget`) + Open Lab Juice Shop on `sentinel ui` / `sentinel lab`; D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
+| **Status** | **Phase E2 shipped** — Coach lab-aware + Open Lab catalog (juice-shop · crapi · auth-session) on `sentinel ui` / `sentinel lab`; D0–D4 intact; Phase C frozen (12 packs / tip `d91394b`); Engine hashes **HOLD** (allowlist empty). |
 | **Not yet** | Full L1/L3/L4, live third-party cloud-metadata campaigns, PyPI publish; Tauri packaging CI (OAuth HOLD — see docs/ci-pending/tauri.yml) |
 
 Monorepo: [cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/sentinel-suite)
@@ -27,6 +27,8 @@ pytest -q
 sentinel doctor
 sentinel lab list
 sentinel lab open juice-shop --program lab-juice-shop
+# also: sentinel lab open crapi --program lab-crapi
+# also: sentinel lab open auth-session --program lab-auth-session
 # start Juice Shop (lab-only): docker run --rm -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop
 sentinel lab attempt lab-juice-shop js-admin-section --note 'tried admin'
 sentinel lab hints lab-juice-shop js-admin-section
