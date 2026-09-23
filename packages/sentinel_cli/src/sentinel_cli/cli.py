@@ -675,7 +675,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack_run.add_argument(
         "pack_id",
         help=(
-            "Pack id (e.g. xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)"
+            "Pack id (e.g. csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)"
         ),
     )
     pack_run.add_argument(
@@ -729,7 +729,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="max_requests",
         type=int,
         default=None,
-        help="race_toctou: total requests per run (hard max 20; over-limit hard-fails)",
+        help="Pack request budget (race_toctou hard max 20; csrf_state/xss_dom/graphql hard max 10; over-limit hard-fails)",
     )
     pack_run.add_argument(
         "--max-duration",
@@ -762,7 +762,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--pack",
         dest="pack_id",
         default=None,
-        help="Filter findings by pack id (e.g. xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
+        help="Filter findings by pack id (e.g. csrf_state | xss_dom | graphql | race_toctou | business_logic | bola_idor_bfla | ato_oauth_oidc)",
     )
     hunt_report.add_argument(
         "-o",
